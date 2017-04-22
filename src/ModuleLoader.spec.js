@@ -146,8 +146,8 @@ describe( 'ModuleLoader', function () {
 
 		it( 'should throw an error if an unknown dependency is found', function () {
 
-			moduleLoader.register( { name: 'a', dependencies: [ 'c' ], start: _.noop } );
-			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: _.noop } );
+			moduleLoader.register( { name: 'a', dependencies: [ ] } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			expect( () => moduleLoader.start() ).to.throw( Error );
 
 		} );

@@ -141,6 +141,15 @@ class ModuleLoader {
 		if ( this.length === 0 )
 			return Bluebird.resolve();
 
+		// Validate module dependencies.
+		let missingDependencies = _( this.modules )
+			.map( m => m.dependencies )
+			.flatten()
+			.filter( dependencyName => !this.modules[ dependencyName ] )
+			.value();
+		if ( missingDependencies.length > 0 )
+			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join(', ') }` );
+
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
 		if ( rootModules.length === 0 )
