@@ -1,0 +1,46 @@
+{
+  "name": "@zelgadis87/ml.js",
+  "version": "0.0.0",
+  "description": "A module loader with dependency injection",
+  "main": "index.js",
+  "scripts": {
+    "eslint": "node node_modules/eslint/bin/eslint.js -c .eslintrc ./src/**/*.js",
+    "test": "node node_modules/mocha/bin/mocha ./src/**/*.spec.js",
+    "coverage": "nyc npm test && nyc report --reporter=lcov"
+  },
+  "author": "Zelgadis87",
+  "license": "ISC",
+  "keywords": [
+    "module",
+    "module-loader",
+    "dependency-injection",
+    "ioc"
+  ],
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "lodash": "^4.17.4",
+    "log4js": "^1.1.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "eslint": "^3.19.0",
+    "log4js": "^1.1.1",
+    "mocha": "^3.2.0",
+    "nyc": "^10.2.0"
+  },
+  "nyc": {
+    "exclude": [
+      "**/*.spec.js",
+      "src/ModuleLoader.logger.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zelgadis87/ML.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zelgadis87/ML.js/issues"
+  },
+  "homepage": "https://github.com/Zelgadis87/ML.js#readme"
+}
