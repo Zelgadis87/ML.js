@@ -144,10 +144,23 @@ describe( 'ModuleLoader', function () {
 
 		} );
 
+		// Please note that this test is actually included in the circular dependency one since,
+		// without a root module, a circular dependency is mathematically required to happen.
+		// The test is only here to cover for the more descriptive error message returned to
+		// the user in this particular case.
+		it( 'should throw an error if no root modules are found', function () {
+
+			moduleLoader.register( { name: 'a', dependencies: [ 'b' ] } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
+			moduleLoader.register( { name: 'c', dependencies: [ 'a' ] } );
+			expect( () => moduleLoader.start() ).to.throw( Error );
+
+		} );
+
 		it( 'should throw an error if an unknown dependency is found', function () {
 
-			moduleLoader.register( { name: 'a', dependencies: [ 'c' ], start: _.noop } );
-			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: _.noop } );
+			moduleLoader.register( { name: 'a', dependencies: [ ] } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			expect( () => moduleLoader.start() ).to.throw( Error );
 
 		} );
