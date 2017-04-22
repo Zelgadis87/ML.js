@@ -1,7 +1,6 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
-	, logger = require( './ModuleLoader.logger.js' )
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -152,7 +151,6 @@ class ModuleLoader {
 			m.order = 0;
 			m.dependenciesPromise = [];
 			m.startPromise = Bluebird.resolve().then( () => m.start() ).then( (x) => this._ensureModuleReturnValue( m, x ) );
-			logger.trace( `Module ${m.name} can start, since it has no depedencies. Order: ${m.order}` );
 		} );
 
 		// Sort the modules
@@ -179,7 +177,6 @@ class ModuleLoader {
 					m.order = lastDependency + 1;
 					m.dependenciesPromise = promises;
 					m.startPromise = Bluebird.all( m.dependenciesPromise ).spread( m.start );
-					logger.trace( `Module ${m.name} will start once its ${ promises.length } dependencies have been loaded. Order: ${ m.order }` );
 				}
 
 
