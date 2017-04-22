@@ -200,8 +200,14 @@ class ModuleLoader {
 			.sortBy( 'order' )
 			.reverse( )
 			.reduce( (partialPromise, m) => {
-				m.startPromise.cancel();
-				return partialPromise.then( m.stop );
+				if ( m.startPromise.isFulfilled() ) {
+					// If the module was started, stop it.
+					return partialPromise.then( Bluebird.resolve( m.startPromise ).then( (self) => m.stop(self) ) );
+				} else {
+					// If the module was still waiting for dependencies, cancel it and ignore it.
+					m.startPromise.cancel();
+					return partialPromise;
+				}
 			}, Bluebird.resolve() );
 
 	}
