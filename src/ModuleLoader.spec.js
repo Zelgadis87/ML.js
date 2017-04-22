@@ -7,9 +7,6 @@ const chai = require( 'chai' )
 	, Bluebird = require( 'bluebird' )
 	;
 
-require( 'log4js' ).configure( {
-} );
-
 describe( 'ModuleLoader', function () {
 
 	let ModuleLoaderClass = require( './ModuleLoader.js' )
