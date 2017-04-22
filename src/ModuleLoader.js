@@ -145,6 +145,7 @@ class ModuleLoader {
 		let missingDependencies = _( this.modules )
 			.map( m => m.dependencies )
 			.flatten()
+			.uniq()
 			.filter( dependencyName => !this.modules[ dependencyName ] )
 			.value();
 		if ( missingDependencies.length > 0 )
