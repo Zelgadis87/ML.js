@@ -5,9 +5,10 @@ let logger = {};
 try {
 	let log4js = require( 'log4js' );
 	logger = log4js.getLogger( 'ModuleLoader' );
+	logger.setLevel( "ERROR" );
 } catch ( e ) {
 	if ( 'code' in e && e.code === 'MODULE_NOT_FOUND' ) {
-		[ 'debug', 'info', 'warn', 'error' ].map(( key ) => logger[ key ] = () => {} );
+		[ 'trace', 'debug', 'info', 'warn', 'error', 'setLevel' ].map(( key ) => logger[ key ] = () => {} );
 	} else {
 		throw e;
 	}

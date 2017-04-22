@@ -8,7 +8,6 @@ const chai = require( 'chai' )
 	;
 
 require( 'log4js' ).configure( {
-	appenders: []
 } );
 
 describe( 'ModuleLoader', function () {
@@ -362,7 +361,7 @@ describe( 'ModuleLoader', function () {
 			let stopPromise = moduleLoader.stop();
 
 			return Bluebird.all( [ startPromise.reflect(), stopPromise.reflect() ] ).spread( (startIntrospection, stopIntrospection) => {
-				expect( startIntrospection.isRejected(), "Module initialization to not have been completed" ).to.be.false;
+				expect( startIntrospection.isRejected(), 'Should cancel startup procedure' ).to.be.false;
 				expect( stopIntrospection.isFulfilled() ).to.be.true;
 			} );
 
@@ -398,6 +397,48 @@ describe( 'ModuleLoader', function () {
 				expect( moduleLoader.stop() ).to.be.eql( moduleLoader.stop() );
 				moduleLoader.stop().then( () => expect( x ).to.be.eql( 1 ) );
 			} );
+
+		} );
+
+		it( 'should not stop unstarted modules', function () {
+
+			moduleLoader.register( 'a', '' );
+			moduleLoader.register( {
+				name: 'b',
+				dependencies: 'a',
+				start: () => Bluebird.delay( 1500 )
+			} );
+			moduleLoader.register( {
+				name: 'c',
+				dependencies: 'b',
+				stop: () => {
+					return Bluebird.reject( new Error( 'Module c should not have been stopped, since it has not even started' ) );
+				}
+			} );
+
+			let startPromise = moduleLoader.start();
+			let stopPromise = moduleLoader.stop();
+
+			return Bluebird.all( [ startPromise.reflect(), stopPromise.reflect() ] ).spread(( startIntrospection, stopIntrospection ) => {
+				expect( stopIntrospection.isFulfilled(), 'Should complete shutdown procedure ignoring unstarted modules' ).to.be.true;
+			} );
+
+		} );
+
+		it( 'should pass the resolved module and their dependencies as arguments', function() {
+
+			let a = { value: 1 };
+			let b = { value: 2 };
+
+			moduleLoader.register( 'a', [], () => a, (a1) => {
+				expect( a1 ).to.be.eql( a );
+			} );
+			moduleLoader.register( 'b', [ 'a' ], () => b, (b1, a1) => {
+				expect( a1 ).to.be.eql( a );
+				expect( b1 ).to.be.eql( b );
+			} );
+
+			return moduleLoader.start().then( () => moduleLoader.stop() );
 
 		} );
 
