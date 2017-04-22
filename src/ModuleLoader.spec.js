@@ -425,7 +425,7 @@ describe( 'ModuleLoader', function () {
 
 		} );
 
-		it( 'should pass the resolved module as arguments', function() {
+		it( 'should pass the resolved module and their dependencies as arguments', function() {
 
 			let a = { value: 1 };
 			let b = { value: 2 };
@@ -433,7 +433,8 @@ describe( 'ModuleLoader', function () {
 			moduleLoader.register( 'a', [], () => a, (a1) => {
 				expect( a1 ).to.be.eql( a );
 			} );
-			moduleLoader.register( 'b', [ 'a' ], () => b, (b1) => {
+			moduleLoader.register( 'b', [ 'a' ], () => b, (b1, a1) => {
+				expect( a1 ).to.be.eql( a );
 				expect( b1 ).to.be.eql( b );
 			} );
 

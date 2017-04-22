@@ -82,7 +82,9 @@ class ModuleLoader {
 			start: mod.start,
 			stop: mod.stop,
 			order: null,
-			startPromise: null
+			dependenciesPromise: null,
+			startPromise: null,
+			stopPromise: null
 		};
 
 		this.length++;
@@ -148,6 +150,7 @@ class ModuleLoader {
 		// Assign order 0 to root modules and let them start loading.
 		_.each( rootModules, m => {
 			m.order = 0;
+			m.dependenciesPromise = [];
 			m.startPromise = Bluebird.resolve().then( () => m.start() ).then( (x) => this._ensureModuleReturnValue( m, x ) );
 			logger.trace( `Module ${m.name} can start, since it has no depedencies. Order: ${m.order}` );
 		} );
@@ -174,7 +177,8 @@ class ModuleLoader {
 				if ( dependenciesResolved ) {
 					stale = false;
 					m.order = lastDependency + 1;
-					m.startPromise = Bluebird.all( promises ).spread( m.start );
+					m.dependenciesPromise = promises;
+					m.startPromise = Bluebird.all( m.dependenciesPromise ).spread( m.start );
 					logger.trace( `Module ${m.name} will start once its ${ promises.length } dependencies have been loaded. Order: ${ m.order }` );
 				}
 
@@ -202,7 +206,7 @@ class ModuleLoader {
 			.reduce( (partialPromise, m) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.
-					return partialPromise.then( Bluebird.resolve( m.startPromise ).then( (self) => m.stop(self) ) );
+					return partialPromise.then( Bluebird.resolve( [].concat( m.startPromise ).concat( m.dependenciesPromise ) ).spread( m.stop ) );
 				} else {
 					// If the module was still waiting for dependencies, cancel it and ignore it.
 					m.startPromise.cancel();
