@@ -10,7 +10,7 @@
     "test": "mocha ./src/**/*.spec.js",
     "coverage": "nyc npm run test",
     "postcoverage": "nyc report --reporter=lcov",
-    "preversion": "npm run coverage"
+    "preversion": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run coverage"
   },
   "author": "Zelgadis87",
   "license": "ISC",
