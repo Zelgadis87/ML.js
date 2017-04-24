@@ -1,12 +1,16 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
-    "eslint": "node node_modules/eslint/bin/eslint.js -c .eslintrc ./src/**/*.js",
-    "test": "node node_modules/mocha/bin/mocha ./src/**/*.spec.js",
-    "coverage": "nyc npm test && nyc report --reporter=lcov"
+    "lint": "npm run eslint",
+    "eslint": "eslint -c .eslintrc ./src/**/*.js",
+    "pretest": "npm run lint",
+    "test": "mocha ./src/**/*.spec.js",
+    "coverage": "nyc npm run test",
+    "postcoverage": "nyc report --reporter=lcov",
+    "preversion": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run coverage"
   },
   "author": "Zelgadis87",
   "license": "ISC",
@@ -24,6 +28,7 @@
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "eslint": "^3.19.0",
+    "eslint-plugin-mocha": "^4.9.0",
     "mocha": "^3.2.0",
     "nyc": "^10.2.0"
   },
