@@ -9,7 +9,8 @@
     "pretest": "npm run lint",
     "test": "node node_modules/mocha/bin/mocha ./src/**/*.spec.js",
     "coverage": "nyc npm run test",
-    "postcoverage": "nyc report --reporter=lcov"
+    "postcoverage": "nyc report --reporter=lcov",
+    "preversion": "npm run coverage"
   },
   "author": "Zelgadis87",
   "license": "ISC",
