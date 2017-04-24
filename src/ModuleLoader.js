@@ -5,8 +5,8 @@ const _ = require( 'lodash' )
 
 Bluebird.config( { cancellation: true } );
 
-let isValidDependency = (str) => {
-	return _.isString( str ) && str.match(/^[A-Za-z0-9-]+$/);
+let isValidDependency = ( str ) => {
+	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
 };
 
 class ModuleLoader {
@@ -61,7 +61,7 @@ class ModuleLoader {
 
 	_ensureModuleReturnValue( module, x ) {
 		if ( x === null || x === undefined )
-			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ typeof(x) }` );
+			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x }` );
 		return x;
 	}
 
@@ -149,7 +149,7 @@ class ModuleLoader {
 			.filter( dependencyName => !this.modules[ dependencyName ] )
 			.value();
 		if ( missingDependencies.length > 0 )
-			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join(', ') }` );
+			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) }` );
 
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
@@ -160,7 +160,7 @@ class ModuleLoader {
 		_.each( rootModules, m => {
 			m.order = 0;
 			m.dependenciesPromise = [];
-			m.startPromise = Bluebird.resolve().then( () => m.start() ).then( (x) => this._ensureModuleReturnValue( m, x ) );
+			m.startPromise = Bluebird.resolve().then( () => m.start() ).then( ( x ) => this._ensureModuleReturnValue( m, x ) );
 		} );
 
 		// Sort the modules
@@ -210,7 +210,7 @@ class ModuleLoader {
 		return _( this.modules )
 			.sortBy( 'order' )
 			.reverse( )
-			.reduce( (partialPromise, m) => {
+			.reduce( ( partialPromise, m ) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.
 					return partialPromise.then( Bluebird.resolve( [].concat( m.startPromise ).concat( m.dependenciesPromise ) ).spread( m.stop ) );
