@@ -285,6 +285,13 @@ describe( 'ModuleLoader', function() {
 			return expect( () => moduleLoader.resolve( 'a' ) ).to.throw( Error );
 		} );
 
+		it( 'should throw an error if the given argument is not a valid dependency name', function() {
+			moduleLoader.start();
+			expect( () => moduleLoader.resolve() ).to.throw( Error );
+			expect( () => moduleLoader.resolve( 2 ) ).to.throw( Error );
+			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw( Error );
+		} );
+
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
 			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'x' ) ).to.be.undefined;

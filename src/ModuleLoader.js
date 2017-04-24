@@ -31,20 +31,22 @@ class ModuleLoader {
 		}
 	}
 
-	resolve( moduleName ) {
+	resolve( dep ) {
 
 		if ( !this.started )
 			throw new Error( 'ModuleLoader not yet started.' );
 
-		if ( _.isArray( moduleName ) ) {
-			let invalidDependencies = moduleName.filter( ( name ) => !isValidDependency( name ) );
+		if ( _.isArray( dep ) ) {
+			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
-			return Promise.all( moduleName.map( ( name ) => this.resolve( name ) ) );
-		} else {
-			if ( !this.modules[ moduleName ] )
+			return Promise.all( dep.map( ( name ) => this.resolve( name ) ) );
+		} else if ( isValidDependency( dep ) ) {
+			if ( !this.modules[ dep ] )
 				return undefined;
-			return this.modules[ moduleName ].startPromise;
+			return this.modules[ dep ].startPromise;
+		} else {
+			throw new Error( `Invalid dependency name, string expected, got: ${ dep }`  );
 		}
 
 	}
