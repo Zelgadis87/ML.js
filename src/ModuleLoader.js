@@ -32,6 +32,14 @@ class ModuleLoader {
 	}
 
 	resolve( moduleName ) {
+
+		if ( _.isArray( moduleName ) ) {
+			let invalidDependencies = moduleName.filter( ( name ) => !isValidDependency( name ) );
+			if ( invalidDependencies.length > 0 )
+				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
+			return Promise.all( moduleName.map( ( name ) => this.resolve( name ) ) );
+		}
+
 		if ( !this.modules[ moduleName ] )
 			return undefined;
 		if ( !this.started )

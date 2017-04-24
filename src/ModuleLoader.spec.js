@@ -285,7 +285,7 @@ describe( 'ModuleLoader', function() {
 			return expect( () => moduleLoader.resolve( 'a' ) ).to.throw( Error );
 		} );
 
-		it( 'should return undefined for unregistered modules', function() {
+		it( 'should return undefined if the given argument is not a registered dependency', function() {
 			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'x' ) ).to.be.undefined;
 		} );
@@ -303,6 +303,11 @@ describe( 'ModuleLoader', function() {
 		it( 'should eventually return the module chained value', function() {
 			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.eql( 4 );
+		} );
+
+		it( 'should allow resolution of multiple modules', function() {
+			moduleLoader.start();
+			return expect( moduleLoader.resolve( [ 'a', 'b' ] ) ).to.be.eventually.deep.equal( [ 1, 2 ] );
 		} );
 
 	} );
