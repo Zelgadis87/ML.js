@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "lint": "npm run eslint",
-    "eslint": "node node_modules/eslint/bin/eslint.js -c .eslintrc ./src/**/*.js",
+    "eslint": "eslint -c .eslintrc ./src/**/*.js",
     "pretest": "npm run lint",
-    "test": "node node_modules/mocha/bin/mocha ./src/**/*.spec.js",
+    "test": "mocha ./src/**/*.spec.js",
     "coverage": "nyc npm run test",
     "postcoverage": "nyc report --reporter=lcov",
     "preversion": "npm run coverage"
