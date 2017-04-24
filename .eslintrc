@@ -7,6 +7,9 @@ env:
     node: true
     es6: true
 
+plugins:
+    - mocha
+
 rules:
 
     //// ECMAScript
@@ -88,4 +91,13 @@ rules:
     no-restricted-globals:
         - error
         - console
+
+    // MOCHA //
+
+    mocha/no-global-tests: error
+    mocha/no-hooks-for-single-case: warn
+    mocha/no-identical-title: error
+    mocha/no-nested-tests: error
+    mocha/no-sibling-hooks: warn
+
 
