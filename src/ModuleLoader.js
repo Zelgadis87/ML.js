@@ -33,18 +33,20 @@ class ModuleLoader {
 
 	resolve( moduleName ) {
 
+		if ( !this.started )
+			throw new Error( 'ModuleLoader not yet started.' );
+
 		if ( _.isArray( moduleName ) ) {
 			let invalidDependencies = moduleName.filter( ( name ) => !isValidDependency( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
 			return Promise.all( moduleName.map( ( name ) => this.resolve( name ) ) );
+		} else {
+			if ( !this.modules[ moduleName ] )
+				return undefined;
+			return this.modules[ moduleName ].startPromise;
 		}
 
-		if ( !this.modules[ moduleName ] )
-			return undefined;
-		if ( !this.started )
-			throw new Error( 'ModuleLoader not yet started.' );
-		return this.modules[ moduleName ].startPromise;
 	}
 
 	start() {
