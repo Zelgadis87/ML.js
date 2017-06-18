@@ -19,18 +19,13 @@ describe( 'ModuleLoader', function () {
 
 	describe( '#register', function () {
 
-		it( 'should throw an error if no arguments is provided', function () {
+		it( 'should not allow modules with empty or null names', function () {
 			expect( () => moduleLoader.register() ).to.throw( Error );
-		} );
-
-		it( 'should throw an error if a non object argument is provided', function () {
-			expect( () => moduleLoader.register( 2 ) ).to.throw( Error );
-		} );
-
-		it( 'should not allow a module without a name', function () {
-			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( undefined ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( {} ) ).to.throw( Error );
+			expect( () => moduleLoader.register( '' ) ).to.throw( Error );
+			expect( () => moduleLoader.register( 2 ) ).to.throw( Error );
 		} );
 
 		it( 'should not allow a module to override an already registered module', function () {
@@ -94,6 +89,29 @@ describe( 'ModuleLoader', function () {
 		it( 'should throw an error is start or stop are not functions', function () {
 			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: '', stop: _.noop } ) ).to.throw( Error );
 			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: _.noop, stop: '' } ) ).to.throw( Error );
+		} );
+
+		it( 'should support registering anonymous modules', function () {
+			expect(() => moduleLoader.register( [], _.noop ) ).to.not.throw( Error );
+			expect(() => moduleLoader.register( [], _.noop, _.noop ) ).to.not.throw( Error );
+		} );
+
+		it( 'should not support array syntax without a start function', function () {
+			expect( () => moduleLoader.register( [] ) ).to.throw( Error );
+			expect( () => moduleLoader.register( [ 'a', 'b' ] ) ).to.throw( Error );
+		} );
+
+		it( 'should support array syntax with only a start function', function() {
+			expect( () => moduleLoader.register( [ 'a', 'b', _.noop ] ) ).to.not.throw( Error );
+		} );
+
+		it( 'should support array syntax with start and stop functions', function() {
+			expect( () => moduleLoader.register( [ 'a', 'b', _.noop, _.noop ] ) ).to.not.throw( Error );
+		} );
+
+		it( 'should support array syntax without dependencies', function () {
+			expect(() => moduleLoader.register( [ _.noop ] ) ).to.not.throw( Error );
+			expect(() => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
 		} );
 
 	} );
@@ -256,6 +274,14 @@ describe( 'ModuleLoader', function () {
 					return 1;
 				}
 			} );
+			return moduleLoader.start();
+		} );
+
+		it( 'should support array syntax ', function () {
+			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then(() => counter++ );
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => { expect( counter ).to.be.eql( 0 ); return delayedCount(); } } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } } );
+			moduleLoader.register( [ 'b', () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } ] );
 			return moduleLoader.start();
 		} );
 
@@ -450,6 +476,14 @@ describe( 'ModuleLoader', function () {
 
 			return moduleLoader.start().then( () => moduleLoader.stop() );
 
+		} );
+
+		it( 'should support array syntax ', function () {
+			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then(() => counter-- );
+			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
+			moduleLoader.register( [ 'b', _.noop, () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); }] );
+			return moduleLoader.start();
 		} );
 
 	} );
