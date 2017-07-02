@@ -1,6 +1,7 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
+	, console = require( 'console' )
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -16,10 +17,50 @@ class ModuleLoader {
 		this.modules = {};
 		this.startPromise = null;
 		this.stopPromise = null;
+		this._anonymousCounter = 0;
 	}
 
 	register( name, dependencies, start, stop ) {
-		if ( _.isObject( name ) ) {
+
+		if ( _.isArray( name ) ) {
+			if ( !_.isUndefined( dependencies ) ) {
+				// Anonymous module registration with explicit parameters
+				return this._doRegister( {
+					name: this._generateAnonymousModuleName(),
+					dependencies: name,
+					start: dependencies,
+					stop: start
+				} );
+			} else {
+				// Array syntax definition
+				let arr = name
+					, last = arr.length > 0 ? arr[ arr.length - 1 ] : undefined
+					, prelast = arr.length > 1 ? arr[ arr.length - 2 ] : undefined
+					;
+
+				if ( _.isFunction( last ) ) {
+					if ( _.isFunction( prelast ) ) {
+						// last two parameters are the start and stop functions, respectively
+						start = prelast;
+						stop = last;
+						dependencies = arr.slice( 0, -2 );
+					} else {
+						// last parameter is the start function
+						start = last;
+						stop = undefined;
+						dependencies = arr.slice( 0, -1 );
+					}
+					return this._doRegister( {
+						name: this._generateAnonymousModuleName(),
+						dependencies: dependencies,
+						start: start,
+						stop: stop
+					} );
+				} else {
+					throw new Error( 'Module does not define a valid start function in array syntax.' );
+				}
+			}
+		} else if ( _.isObject( name ) ) {
 			return this._doRegister( name );
 		} else {
 			return this._doRegister( {
@@ -29,6 +70,7 @@ class ModuleLoader {
 				stop: stop
 			} );
 		}
+
 	}
 
 	resolve( dep ) {
@@ -233,6 +275,10 @@ class ModuleLoader {
 				}
 			}, Bluebird.resolve() );
 
+	}
+
+	_generateAnonymousModuleName() {
+		return 'anonymous-module-' + this._anonymousCounter++;
 	}
 
 }
