@@ -66,11 +66,21 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should allow a module with a valid spread definition', function() {
-			expect( () => moduleLoader.register( 'a', [], _.noop, _.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'a', [] ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', [], _.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', [], _.noop, _.noop ) ).to.not.throw( Error );
 		} );
 
-		it( 'should allow a module definition without start and stop functions', function() {
-			expect( () => moduleLoader.register( { name: 'a', dependencies: [] } ) ).to.not.throw( Error );
+		it( 'should allow a module with a name and an object definition', function() {
+			expect( () => moduleLoader.register( 'a', { start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', { start: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', { stop: _.noop } ) ).to.not.throw( Error );
+		} );
+
+		it( 'should allow a module with a namem, dependencies and an object definition', function() {
+			expect( () => moduleLoader.register( 'a', [], { start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', [ 'a' ], { start: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', [ 'a' ], { stop: _.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module definition with an empty string as dependency', function() {
@@ -279,9 +289,17 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should support array syntax ', function() {
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
-			moduleLoader.register( { name: 'a', dependencies: [], start: () => { expect( counter ).to.be.eql( 0 ); return delayedCount(); } } );
-			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } ] );
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => delayedCount() } );
+			moduleLoader.register( [ 'a', () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } ] );
+			return moduleLoader.start();
+		} );
+
+		it( 'should support simplified syntax ', function() {
+			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
+			moduleLoader.register( 'a1', { start: delayedCount } );
+			moduleLoader.register( 'a2', [], { start: delayedCount } );
+			moduleLoader.register( 'b', [ 'a1', 'a2' ], { start: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
+			moduleLoader.register( 'c', [ 'b' ], { start: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			return moduleLoader.start();
 		} );
 
