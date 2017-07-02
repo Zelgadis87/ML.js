@@ -1,7 +1,6 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
-	, console = require( 'console' )
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -64,21 +63,28 @@ class ModuleLoader {
 		} else if ( _.isObject( name ) ) {
 			return this._doRegister( name );
 		} else {
+			let bind = function( fn, _this ) {
+				return fn ? _.bind( fn, _this ) : undefined;
+			};
+
 			if ( arguments.length === 2 && _.isObject( dependencies ) ) {
+				// Object instance mode with no dependencies
 				return this._doRegister( {
 					name: name,
 					dependencies: [],
-					start: dependencies.start,
-					stop: dependencies.stop
+					start: bind( dependencies.start, dependencies ),
+					stop: bind( dependencies.stop, dependencies )
 				} );
 			} else if ( arguments.length === 3 && _.isObject( start ) ) {
+				// Object instance mode with dependencies
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
-					start: start.start,
-					stop: start.stop
+					start: bind( start.start, start ),
+					stop: bind( start.stop, start )
 				} );
 			} else {
+				// Spread syntax
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
