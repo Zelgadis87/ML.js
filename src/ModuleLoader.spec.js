@@ -294,13 +294,29 @@ describe( 'ModuleLoader', function() {
 			return moduleLoader.start();
 		} );
 
-		it( 'should support simplified syntax ', function() {
+		it( 'should support object instance mode ', function() {
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
 			moduleLoader.register( 'a1', { start: delayedCount } );
 			moduleLoader.register( 'a2', [], { start: delayedCount } );
 			moduleLoader.register( 'b', [ 'a1', 'a2' ], { start: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
 			moduleLoader.register( 'c', [ 'b' ], { start: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			return moduleLoader.start();
+		} );
+
+		it( 'should use the proper this object when in object instance mode', function() {
+			let Cls = function() {
+				this.times = 1;
+				this.start = function() {
+					expect( this.times ).to.be.eql( 1 );
+					this.times = 2;
+					return this;
+				};
+				return this;
+			};
+			let obj = new Cls();
+
+			moduleLoader.register( 'obj', obj );
+			return moduleLoader.start().then( () => expect( obj.times ).to.be.eql( 2 ) );
 		} );
 
 	} );
