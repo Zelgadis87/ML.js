@@ -1,4 +1,7 @@
 
+## v0.5.0 (2017/07/02 17:44)
+- Now supports a simplified syntax, passing the name, dependencies and the object that implements start/stop functions
+
 ## v0.4.0 (2017/07/02 16:07)
 - Allow anonymous dependencies to be specified
 
