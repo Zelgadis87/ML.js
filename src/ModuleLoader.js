@@ -22,7 +22,8 @@ class ModuleLoader {
 
 	register( name, dependencies, start, stop ) {
 
-		if ( _.isArray( name ) ) {
+		if ( _.isArray( name ) && arguments.length < 4 ) {
+			// Name is missing, shift arguments.
 			if ( !_.isUndefined( dependencies ) ) {
 				// Anonymous module registration with explicit parameters
 				return this._doRegister( {
@@ -63,12 +64,28 @@ class ModuleLoader {
 		} else if ( _.isObject( name ) ) {
 			return this._doRegister( name );
 		} else {
-			return this._doRegister( {
-				name: name,
-				dependencies: dependencies,
-				start: start,
-				stop: stop
-			} );
+			if ( arguments.length === 2 && _.isObject( dependencies ) ) {
+				return this._doRegister( {
+					name: name,
+					dependencies: [],
+					start: dependencies.start,
+					stop: dependencies.stop
+				} );
+			} else if ( arguments.length === 3 && _.isObject( start ) ) {
+				return this._doRegister( {
+					name: name,
+					dependencies: dependencies,
+					start: start.start,
+					stop: start.stop
+				} );
+			} else {
+				return this._doRegister( {
+					name: name,
+					dependencies: dependencies,
+					start: start,
+					stop: stop
+				} );
+			}
 		}
 
 	}
