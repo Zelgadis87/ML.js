@@ -382,6 +382,17 @@ describe( 'ModuleLoader', function() {
 			return expect( moduleLoader.resolve( [ 'a', 'b' ] ) ).to.be.eventually.deep.equal( [ 1, 2 ] );
 		} );
 
+		it( 'should allow resolution of all listed modules', function() {
+			moduleLoader.start();
+			let names = moduleLoader.list();
+			let resolution = moduleLoader.resolve( names );
+			return Promise.all( [
+				expect( resolution ).to.eventually.contain( 1 ),
+				expect( resolution ).to.eventually.contain( 2 ),
+				expect( resolution ).to.eventually.contain( 4 )
+			] );
+		} );
+
 	} );
 
 	describe( '#stop', function() {
@@ -535,6 +546,16 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
 			moduleLoader.register( [ 'b', _.noop, () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
+		} );
+
+	} );
+
+	describe( '#list', function() {
+
+		it( 'should list all registered modules', function() {
+			moduleLoader.register( { name: 'a', dependencies: [] } );
+			moduleLoader.register( { name: 'b', dependencies: [] } );
+			expect( moduleLoader.list() ).to.be.eql( [ 'a', 'b' ] );
 		} );
 
 	} );
