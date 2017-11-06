@@ -274,7 +274,7 @@ class ModuleLoader {
 		}
 
 		if ( stale )
-			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${_.map( missingModules, m => m.name ).join( ', ' )} !` );
+			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ _.map( missingModules, m => m.name ).join( ', ' ) } !` );
 
 		return Bluebird.all( _.map( this.modules, m => m.startPromise ) );
 	}
@@ -286,7 +286,7 @@ class ModuleLoader {
 
 		return _( this.modules )
 			.sortBy( 'order' )
-			.reverse( )
+			.reverse()
 			.reduce( ( partialPromise, m ) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.

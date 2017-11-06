@@ -9,7 +9,7 @@ const chai = require( 'chai' )
 
 describe( 'ModuleLoader', function() {
 
-	let ModuleLoaderClass = require( './ModuleLoader.js' )
+	let ModuleLoaderClass = require( '../src/ModuleLoader.js' )
 		, moduleLoader
 		;
 
@@ -187,7 +187,7 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should throw an error if an unknown dependency is found', function() {
 
-			moduleLoader.register( { name: 'a', dependencies: [ ] } );
+			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			expect( () => moduleLoader.start() ).to.throw( Error );
 
@@ -245,9 +245,11 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should start modules with their respective dependencies already resolved', function() {
-			moduleLoader.register( { name: 'a', dependencies: [], start: () => {
-				return 1;
-			} } );
+			moduleLoader.register( {
+				name: 'a', dependencies: [], start: () => {
+					return 1;
+				}
+			} );
 			moduleLoader.register( {
 				name: 'b', dependencies: [ 'a' ], start: ( a ) => {
 					expect( a ).to.be.eql( 1 );
@@ -273,11 +275,13 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should allow different modules to share state between dependencies', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: () => { return { value: 1 }; } } );
-			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: ( a ) => {
-				expect( a.value ).to.be.eql( 1 );
-				a.value = 0;
-				return 1;
-			} } );
+			moduleLoader.register( {
+				name: 'b', dependencies: [ 'a' ], start: ( a ) => {
+					expect( a.value ).to.be.eql( 1 );
+					a.value = 0;
+					return 1;
+				}
+			} );
 			moduleLoader.register( {
 				name: 'c', dependencies: [ 'a', 'b' ], start: ( a, b ) => {
 					expect( a.value ).to.be.eql( 0 );
@@ -289,8 +293,8 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should support array syntax ', function() {
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
-			moduleLoader.register( { name: 'a', dependencies: [], start: () => delayedCount() } );
-			moduleLoader.register( [ 'a', () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } ] );
+			moduleLoader.register( { name: 'a', dependencies: [], start: delayedCount } );
+			moduleLoader.register( [ 'a', () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
 
@@ -327,7 +331,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( {
 				name: 'a',
 				dependencies: [],
-				start: ( ) => { return 1; }
+				start: () => { return 1; }
 			} );
 			moduleLoader.register( {
 				name: 'b',
@@ -387,7 +391,7 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should eventually return a resolved Promise', function() {
 
-			moduleLoader.register( 'a', [ ] );
+			moduleLoader.register( 'a', [] );
 			moduleLoader.register( 'b', [ 'a' ] );
 			moduleLoader.register( 'c', [ 'a', 'b' ] );
 
@@ -528,7 +532,7 @@ describe( 'ModuleLoader', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
 			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', _.noop, () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } ] );
+			moduleLoader.register( [ 'b', _.noop, () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
 
