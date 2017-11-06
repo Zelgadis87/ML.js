@@ -356,7 +356,7 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw( Error );
 		} );
 
-		it.only( 'should return undefined if the given argument is not a registered dependency', function() {
+		it( 'should return undefined if the given argument is not a registered dependency', function() {
 			moduleLoader.register( { name: 'x', dependencies: [] } );
 			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'y' ) ).to.be.eventually.undefined;
