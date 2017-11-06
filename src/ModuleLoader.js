@@ -110,10 +110,10 @@ class ModuleLoader {
 			return Promise.all( dep.map( ( name ) => this.resolve( name ) ) );
 		} else if ( isValidDependency( dep ) ) {
 			if ( !this.modules[ dep ] )
-				return undefined;
+				return Promise.resolve( undefined );
 			return this.modules[ dep ].startPromise;
 		} else {
-			throw new Error( `Invalid dependency name, string expected, got: ${ dep }`  );
+			throw new Error( `Invalid dependency name, string expected, got: ${ dep }` );
 		}
 
 	}
@@ -163,7 +163,7 @@ class ModuleLoader {
 
 	_ensureModuleReturnValue( module, x ) {
 		if ( x === null || x === undefined )
-			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x }` );
+			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
 	}
 
@@ -251,7 +251,7 @@ class ModuleLoader {
 			.filter( dependencyName => !this.modules[ dependencyName ] )
 			.value();
 		if ( missingDependencies.length > 0 )
-			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) }` );
+			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) } ` );
 
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
