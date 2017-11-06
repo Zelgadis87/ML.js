@@ -1,6 +1,8 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
+	, path = require( 'path' )
+	, parseFunction = require( 'parse-function' )().parse
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -114,6 +116,29 @@ class ModuleLoader {
 			throw new Error( `Invalid dependency name, string expected, got: ${ dep }`  );
 		}
 
+	}
+
+	registerFile( filepath ) {
+		let lib = require( filepath );
+		if ( _.isFunction( lib ) ) {
+			let name = this._generateNameFromFilepath( filepath );
+			let result = parseFunction( lib );
+
+			return this._doRegister( {
+				name: name,
+				dependencies: result.args,
+				start: function( ...deps ) {
+					return lib.apply( {}, deps );
+				},
+				stop: _.noop
+			} );
+		} else {
+			throw new Error( `File ${ filepath } does not contain a valid module definition !` );
+		}
+	}
+
+	list() {
+		return _.map( this.modules, 'name' );
 	}
 
 	start() {
@@ -302,6 +327,11 @@ class ModuleLoader {
 
 	_generateAnonymousModuleName() {
 		return 'anonymous-module-' + this._anonymousCounter++;
+	}
+
+	_generateNameFromFilepath( filepath ) {
+		let filename = path.parse( filepath ).name;
+		return _.camelCase( filename );
 	}
 
 }
