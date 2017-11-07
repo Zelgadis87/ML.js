@@ -1,6 +1,9 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
+	, fs = require( 'fs' )
+	, path = require( 'path' )
+	, parseFunction = require( 'parse-function' )().parse
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -108,12 +111,48 @@ class ModuleLoader {
 			return Promise.all( dep.map( ( name ) => this.resolve( name ) ) );
 		} else if ( isValidDependency( dep ) ) {
 			if ( !this.modules[ dep ] )
-				return undefined;
+				return Promise.resolve( undefined );
 			return this.modules[ dep ].startPromise;
 		} else {
-			throw new Error( `Invalid dependency name, string expected, got: ${ dep }`  );
+			throw new Error( `Invalid dependency name, string expected, got: ${ dep }` );
 		}
 
+	}
+
+	registerFile( filepath ) {
+		let lib = require( filepath );
+		if ( _.isFunction( lib ) ) {
+			let name = this._generateNameFromFilepath( filepath );
+			let result = parseFunction( lib );
+
+			return this._doRegister( {
+				name: name,
+				dependencies: result.args,
+				start: function( ...deps ) {
+					return lib.apply( {}, deps );
+				},
+				stop: _.noop
+			} );
+		} else {
+			throw new Error( `File ${ filepath } does not contain a valid module definition !` );
+		}
+	}
+
+	registerDirectory( directory, recursive = false ) {
+		const entries = fs.readdirSync( directory );
+		for ( let entry of entries ) {
+			const filepath = path.join( directory, entry );
+			const stats = fs.statSync( filepath );
+			if ( stats.isFile() ) {
+				this.registerFile( filepath );
+			} else if ( stats.isDirectory() && recursive ) {
+				this.registerDirectory( filepath, recursive );
+			}
+		}
+	}
+
+	list() {
+		return _.map( this.modules, 'name' );
 	}
 
 	start() {
@@ -138,7 +177,7 @@ class ModuleLoader {
 
 	_ensureModuleReturnValue( module, x ) {
 		if ( x === null || x === undefined )
-			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x }` );
+			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
 	}
 
@@ -170,10 +209,10 @@ class ModuleLoader {
 	_validateModuleDefinition( mod ) {
 
 		if ( !_.isString( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
-			throw new Error( 'Module does not define a valid name property.' );
+			throw new Error( 'Module does not define a valid name property: ' + mod.name );
 
 		if ( this.modules[ mod.name ] )
-			throw new Error( 'Cannot override module definition.' );
+			throw new Error( 'Cannot override module definition: ' + mod.name );
 
 		if ( !_.isArray( mod.dependencies ) ) {
 			if ( _.isNull( mod.dependencies ) || _.isUndefined( mod.dependencies ) ) {
@@ -185,19 +224,19 @@ class ModuleLoader {
 					mod.dependencies = [ mod.dependencies ];
 				}
 			} else {
-				throw new Error( 'Module does not define a valid dependencies property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid dependencies property.` );
 			}
 		}
 
 		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
-			throw new Error( 'Module specified some invalid dependencies: ' + invalidDependencies.join( ', ' ) );
+			throw new Error( `Module ${ mod.name } specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
 
 		if ( !_.isFunction( mod.start ) ) {
 			if ( _.isUndefined( mod.start ) ) {
 				mod.start = () => { return {}; };
 			} else {
-				throw new Error( 'Module does not define a valid start property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid start property.` );
 			}
 		}
 
@@ -205,7 +244,7 @@ class ModuleLoader {
 			if ( _.isUndefined( mod.stop ) ) {
 				mod.stop = _.noop;
 			} else {
-				throw new Error( 'Module does not define a valid stop property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid stop property.` );
 			}
 		}
 
@@ -226,7 +265,7 @@ class ModuleLoader {
 			.filter( dependencyName => !this.modules[ dependencyName ] )
 			.value();
 		if ( missingDependencies.length > 0 )
-			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) }` );
+			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) } ` );
 
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
@@ -274,7 +313,7 @@ class ModuleLoader {
 		}
 
 		if ( stale )
-			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${_.map( missingModules, m => m.name ).join( ', ' )} !` );
+			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ _.map( missingModules, m => m.name ).join( ', ' ) } !` );
 
 		return Bluebird.all( _.map( this.modules, m => m.startPromise ) );
 	}
@@ -286,7 +325,7 @@ class ModuleLoader {
 
 		return _( this.modules )
 			.sortBy( 'order' )
-			.reverse( )
+			.reverse()
 			.reduce( ( partialPromise, m ) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.
@@ -302,6 +341,11 @@ class ModuleLoader {
 
 	_generateAnonymousModuleName() {
 		return 'anonymous-module-' + this._anonymousCounter++;
+	}
+
+	_generateNameFromFilepath( filepath ) {
+		let filename = path.parse( filepath ).name;
+		return _.camelCase( filename );
 	}
 
 }

@@ -1,16 +1,16 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
     "lint": "npm run eslint",
-    "eslint": "eslint -c .eslintrc ./src/**/*.js",
+    "eslint": "eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
     "pretest": "npm run lint",
-    "test": "mocha ./src/**/*.spec.js",
+    "test": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run execute-tests",
+    "execute-tests": "mocha ./test/**/*.spec.js",
     "coverage": "nyc npm run test",
     "postcoverage": "nyc report --reporter=lcov",
-    "preversion": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run coverage",
     "versionate": "npm-versionator"
   },
   "author": "Zelgadis87",
@@ -22,21 +22,23 @@
     "ioc"
   ],
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "lodash": "^4.17.4"
+    "bluebird": "^3.5.1",
+    "lodash": "^4.17.4",
+    "parse-function": "^5.0.23"
   },
   "devDependencies": {
-    "@zelgadis87/npm-versionator": "^0.5.1",
-    "chai": "^3.5.0",
-    "chai-as-promised": "^6.0.0",
-    "eslint": "^3.19.0",
-    "eslint-plugin-mocha": "^4.9.0",
-    "mocha": "^3.2.0",
-    "nyc": "^10.2.0"
+    "@zelgadis87/npm-versionator": "^0.6.1",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "eslint": "^4.10.0",
+    "eslint-plugin-mocha": "^4.11.0",
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0"
   },
   "nyc": {
     "exclude": [
-      "**/*.spec.js"
+      "**/*.spec.js",
+      "test/files/**"
     ]
   },
   "repository": {

@@ -9,7 +9,7 @@ const chai = require( 'chai' )
 
 describe( 'ModuleLoader', function() {
 
-	let ModuleLoaderClass = require( './ModuleLoader.js' )
+	let ModuleLoaderClass = require( '../src/ModuleLoader.js' )
 		, moduleLoader
 		;
 
@@ -187,7 +187,7 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should throw an error if an unknown dependency is found', function() {
 
-			moduleLoader.register( { name: 'a', dependencies: [ ] } );
+			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			expect( () => moduleLoader.start() ).to.throw( Error );
 
@@ -245,9 +245,11 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should start modules with their respective dependencies already resolved', function() {
-			moduleLoader.register( { name: 'a', dependencies: [], start: () => {
-				return 1;
-			} } );
+			moduleLoader.register( {
+				name: 'a', dependencies: [], start: () => {
+					return 1;
+				}
+			} );
 			moduleLoader.register( {
 				name: 'b', dependencies: [ 'a' ], start: ( a ) => {
 					expect( a ).to.be.eql( 1 );
@@ -273,11 +275,13 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should allow different modules to share state between dependencies', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: () => { return { value: 1 }; } } );
-			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: ( a ) => {
-				expect( a.value ).to.be.eql( 1 );
-				a.value = 0;
-				return 1;
-			} } );
+			moduleLoader.register( {
+				name: 'b', dependencies: [ 'a' ], start: ( a ) => {
+					expect( a.value ).to.be.eql( 1 );
+					a.value = 0;
+					return 1;
+				}
+			} );
 			moduleLoader.register( {
 				name: 'c', dependencies: [ 'a', 'b' ], start: ( a, b ) => {
 					expect( a.value ).to.be.eql( 0 );
@@ -289,8 +293,8 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should support array syntax ', function() {
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
-			moduleLoader.register( { name: 'a', dependencies: [], start: () => delayedCount() } );
-			moduleLoader.register( [ 'a', () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } ] );
+			moduleLoader.register( { name: 'a', dependencies: [], start: delayedCount } );
+			moduleLoader.register( [ 'a', () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
 
@@ -327,7 +331,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( {
 				name: 'a',
 				dependencies: [],
-				start: ( ) => { return 1; }
+				start: () => { return 1; }
 			} );
 			moduleLoader.register( {
 				name: 'b',
@@ -353,8 +357,9 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
+			moduleLoader.register( { name: 'x', dependencies: [] } );
 			moduleLoader.start();
-			return expect( moduleLoader.resolve( 'x' ) ).to.be.undefined;
+			return expect( moduleLoader.resolve( 'y' ) ).to.be.eventually.undefined;
 		} );
 
 		it( 'should eventually return the module calculated value', function() {
@@ -377,6 +382,17 @@ describe( 'ModuleLoader', function() {
 			return expect( moduleLoader.resolve( [ 'a', 'b' ] ) ).to.be.eventually.deep.equal( [ 1, 2 ] );
 		} );
 
+		it( 'should allow resolution of all listed modules', function() {
+			moduleLoader.start();
+			let names = moduleLoader.list();
+			let resolution = moduleLoader.resolve( names );
+			return Promise.all( [
+				expect( resolution ).to.eventually.contain( 1 ),
+				expect( resolution ).to.eventually.contain( 2 ),
+				expect( resolution ).to.eventually.contain( 4 )
+			] );
+		} );
+
 	} );
 
 	describe( '#stop', function() {
@@ -387,7 +403,7 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should eventually return a resolved Promise', function() {
 
-			moduleLoader.register( 'a', [ ] );
+			moduleLoader.register( 'a', [] );
 			moduleLoader.register( 'b', [ 'a' ] );
 			moduleLoader.register( 'c', [ 'a', 'b' ] );
 
@@ -528,9 +544,109 @@ describe( 'ModuleLoader', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
 			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', _.noop, () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } ] );
+			moduleLoader.register( [ 'b', _.noop, () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
+
+	} );
+
+	describe( '#list', function() {
+
+		it( 'should list all registered modules', function() {
+			moduleLoader.register( { name: 'a', dependencies: [] } );
+			moduleLoader.register( { name: 'b', dependencies: [] } );
+			expect( moduleLoader.list() ).to.be.eql( [ 'a', 'b' ] );
+		} );
+
+	} );
+
+	describe( '#registerFile', function() {
+
+		let path = require( 'path' );
+		let regFile = filename => moduleLoader.registerFile( path.join( __dirname, 'files', filename ) );
+
+		it( 'should allow registering external files that define a module', function() {
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'a.js' ) ) ).to.not.throw( Error );
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'a2.js' ) ) ).to.not.throw( Error );
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'b.js' ) ) ).to.not.throw( Error );
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'c' ) ) ).to.not.throw( Error );
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'd' ) ) ).to.not.throw( Error );
+		} );
+
+		it( 'should not allow registering external files that do not define a module', function() {
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'err.js' ) ) ).to.throw( Error );
+		} );
+
+		it( 'should not allow registering not existing external files', function() {
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'missing.js' ) ) ).to.throw( Error );
+		} );
+
+		it( 'should register dependencies for injection', function() {
+			[ 'a', 'a2', 'b', 'c', 'd' ].forEach( regFile );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 ),
+				expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 ),
+				expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 ),
+				expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 ),
+				expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 )
+			] );
+
+		} );
+
+		it( 'should register dependencies with camel-case naming', function() {
+			[ 'a', 'ClassName', 'long-name' ].forEach( regFile );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined
+			] );
+		} );
+
+	} );
+
+	describe( '#registerDirectory', function() {
+
+		let testDirectory;
+
+		beforeEach( () => {
+			const path = require( 'path' );
+			testDirectory = path.join( __dirname, 'files', 'dir' );
+			moduleLoader.register( { name: 'a', dependencies: [] } );
+		} );
+
+		it( 'should register all modules in a folder', function() {
+
+			moduleLoader.registerDirectory( testDirectory );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+			] );
+
+		} ).slow( 200 );
+
+		it( 'should register all modules in a folder and its subfolders, if asked', function() {
+
+			moduleLoader.registerDirectory( testDirectory, true );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
+			] );
+
+		} ).slow( 200 );
 
 	} );
 
