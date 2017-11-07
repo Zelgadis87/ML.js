@@ -22,18 +22,18 @@
     "ioc"
   ],
   "dependencies": {
-    "bluebird": "^3.5.0",
+    "bluebird": "^3.5.1",
     "lodash": "^4.17.4",
     "parse-function": "^5.0.23"
   },
   "devDependencies": {
-    "@zelgadis87/npm-versionator": "^0.5.1",
-    "chai": "^3.5.0",
-    "chai-as-promised": "^6.0.0",
-    "eslint": "^3.19.0",
-    "eslint-plugin-mocha": "^4.9.0",
-    "mocha": "^3.2.0",
-    "nyc": "^10.2.0"
+    "@zelgadis87/npm-versionator": "^0.6.1",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "eslint": "^4.10.0",
+    "eslint-plugin-mocha": "^4.11.0",
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0"
   },
   "nyc": {
     "exclude": [
