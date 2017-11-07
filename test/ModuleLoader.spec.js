@@ -595,9 +595,9 @@ describe( 'ModuleLoader', function() {
 		it( 'should register dependencies with camel-case naming', function() {
 			[ 'a', 'ClassName', 'long-name' ].forEach( regFile );
 			moduleLoader.start();
-			expect( moduleLoader.resolve( 'a' ) ).to.not.be.rejected;
-			expect( moduleLoader.resolve( 'className' ) ).to.not.be.rejected;
-			expect( moduleLoader.resolve( 'longName' ) ).to.not.be.rejected;
+			expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined;
+			expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined;
+			expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined;
 			expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined;
 			expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined;
 		} );
