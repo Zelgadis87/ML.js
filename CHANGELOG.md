@@ -1,4 +1,8 @@
 
+## v0.6.0 (2017/11/07 21:42)
+
+- Added registerFile and registerDirectory functionalities
+
 ## v0.5.0 (2017/07/02 17:44)
 - Now supports a simplified syntax, passing the name, dependencies and the object that implements start/stop functions
 
