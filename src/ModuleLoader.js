@@ -1,6 +1,7 @@
 
 const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
+	, fs = require( 'fs' )
 	, path = require( 'path' )
 	, parseFunction = require( 'parse-function' )().parse
 	;
@@ -134,6 +135,19 @@ class ModuleLoader {
 			} );
 		} else {
 			throw new Error( `File ${ filepath } does not contain a valid module definition !` );
+		}
+	}
+
+	registerDirectory( directory, recursive = false ) {
+		const entries = fs.readdirSync( directory );
+		for ( let entry of entries ) {
+			const filepath = path.join( directory, entry );
+			const stats = fs.statSync( filepath );
+			if ( stats.isFile() ) {
+				this.registerFile( filepath );
+			} else if ( stats.isDirectory() && recursive ) {
+				this.registerDirectory( filepath, recursive );
+			}
 		}
 	}
 

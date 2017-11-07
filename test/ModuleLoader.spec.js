@@ -610,5 +610,40 @@ describe( 'ModuleLoader', function() {
 
 	} );
 
+	describe.only( '#registerDirectory', function() {
+
+		let testDirectory;
+
+		beforeEach( () => {
+			const path = require( 'path' );
+			testDirectory = path.join( __dirname, 'files', 'dir' );
+			moduleLoader.register( { name: 'a', dependencies: [] } );
+		} );
+
+		it( 'should register all modules in a folder', function() {
+			moduleLoader.registerDirectory( testDirectory );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+			] );
+		} );
+
+		it( 'should register all modules in a folder and its subfolders, if asked', function() {
+			moduleLoader.registerDirectory( testDirectory, true );
+			moduleLoader.start();
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
+			] );
+		} );
+
+	} );
 
 } );
