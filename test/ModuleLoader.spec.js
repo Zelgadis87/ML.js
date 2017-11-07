@@ -610,7 +610,7 @@ describe( 'ModuleLoader', function() {
 
 	} );
 
-	describe.only( '#registerDirectory', function() {
+	describe( '#registerDirectory', function() {
 
 		let testDirectory;
 
@@ -621,6 +621,7 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should register all modules in a folder', function() {
+
 			moduleLoader.registerDirectory( testDirectory );
 			moduleLoader.start();
 
@@ -630,9 +631,11 @@ describe( 'ModuleLoader', function() {
 				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
 				expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
 			] );
-		} );
+
+		} ).slow( 200 );
 
 		it( 'should register all modules in a folder and its subfolders, if asked', function() {
+
 			moduleLoader.registerDirectory( testDirectory, true );
 			moduleLoader.start();
 
@@ -642,7 +645,8 @@ describe( 'ModuleLoader', function() {
 				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
 				expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
 			] );
-		} );
+
+		} ).slow( 200 );
 
 	} );
 
