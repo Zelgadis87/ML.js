@@ -584,22 +584,28 @@ describe( 'ModuleLoader', function() {
 		it( 'should register dependencies for injection', function() {
 			[ 'a', 'a2', 'b', 'c', 'd' ].forEach( regFile );
 			moduleLoader.start();
-			expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 );
-			expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 );
-			expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 );
-			expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 );
-			expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 );
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 ),
+				expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 ),
+				expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 ),
+				expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 ),
+				expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 )
+			] );
 
 		} );
 
 		it( 'should register dependencies with camel-case naming', function() {
 			[ 'a', 'ClassName', 'long-name' ].forEach( regFile );
 			moduleLoader.start();
-			expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined;
-			expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined;
-			expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined;
-			expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined;
-			expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined;
+
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined,
+				expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined
+			] );
 		} );
 
 	} );
