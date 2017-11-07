@@ -7,11 +7,10 @@
     "lint": "npm run eslint",
     "eslint": "eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
     "pretest": "npm run lint",
-    "test": "npm run execute-tests",
+    "test": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run execute-tests",
     "execute-tests": "mocha ./test/**/*.spec.js",
     "coverage": "nyc npm run test",
     "postcoverage": "nyc report --reporter=lcov",
-    "preversion": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run execute-tests",
     "versionate": "npm-versionator"
   },
   "author": "Zelgadis87",
