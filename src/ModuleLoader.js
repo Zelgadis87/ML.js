@@ -195,10 +195,10 @@ class ModuleLoader {
 	_validateModuleDefinition( mod ) {
 
 		if ( !_.isString( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
-			throw new Error( 'Module does not define a valid name property.' );
+			throw new Error( 'Module does not define a valid name property: ' + mod.name );
 
 		if ( this.modules[ mod.name ] )
-			throw new Error( 'Cannot override module definition.' );
+			throw new Error( 'Cannot override module definition: ' + mod.name );
 
 		if ( !_.isArray( mod.dependencies ) ) {
 			if ( _.isNull( mod.dependencies ) || _.isUndefined( mod.dependencies ) ) {
@@ -210,19 +210,19 @@ class ModuleLoader {
 					mod.dependencies = [ mod.dependencies ];
 				}
 			} else {
-				throw new Error( 'Module does not define a valid dependencies property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid dependencies property.` );
 			}
 		}
 
 		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
-			throw new Error( 'Module specified some invalid dependencies: ' + invalidDependencies.join( ', ' ) );
+			throw new Error( `Module ${ mod.name } specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
 
 		if ( !_.isFunction( mod.start ) ) {
 			if ( _.isUndefined( mod.start ) ) {
 				mod.start = () => { return {}; };
 			} else {
-				throw new Error( 'Module does not define a valid start property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid start property.` );
 			}
 		}
 
@@ -230,7 +230,7 @@ class ModuleLoader {
 			if ( _.isUndefined( mod.stop ) ) {
 				mod.stop = _.noop;
 			} else {
-				throw new Error( 'Module does not define a valid stop property.' );
+				throw new Error( `Module ${ mod.name } does not define a valid stop property.` );
 			}
 		}
 
