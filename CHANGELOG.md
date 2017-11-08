@@ -1,4 +1,8 @@
 
+## v0.7.0 (2017/11/08 21:20)
+
+- Implemented registerValue functionality
+
 ## v0.6.0 (2017/11/07 21:42)
 
 - Added registerFile and registerDirectory functionalities
