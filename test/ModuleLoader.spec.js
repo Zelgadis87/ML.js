@@ -661,4 +661,36 @@ describe( 'ModuleLoader', function() {
 
 	} );
 
+	describe( '#registerValue', function() {
+
+		it( 'should resolve the registered value', function() {
+			moduleLoader.registerValue( 'a', 1 );
+			moduleLoader.registerValue( 'b', 'b' );
+			moduleLoader.registerValue( 'c', [ 1, 2 ] );
+			moduleLoader.registerValue( 'd', { d: 1 } );
+			moduleLoader.start();
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.deep.equal( 1 ),
+				expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.deep.equal( 'b' ),
+				expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.deep.equal( [ 1, 2 ] ),
+				expect( moduleLoader.resolve( 'd' ) ).to.be.eventually.deep.equal( { d: 1 } )
+			] );
+		} );
+
+		it( 'should not allow null or undefined values', function() {
+			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
+		} );
+
+		it( 'should not allow values with null or undefined names', function() {
+			expect( () => moduleLoader.registerValue( null, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( undefined, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( null, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( {}, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( '', 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( 2, 1 ) ).to.throw( Error );
+		} );
+
+	} );
+
 } );

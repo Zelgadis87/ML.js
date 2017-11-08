@@ -119,6 +119,17 @@ class ModuleLoader {
 
 	}
 
+	registerValue( name, value ) {
+		if ( !this._isValidReturnValue( value ) )
+			throw new Error( `Value ${ value } is not valid for module ${ name }` );
+		return this._doRegister( {
+			name: name,
+			dependencies: [],
+			start: () => value,
+			stop: _.noop
+		} );
+	}
+
 	registerFile( filepath ) {
 		let lib = require( filepath );
 		if ( _.isFunction( lib ) ) {
@@ -176,9 +187,13 @@ class ModuleLoader {
 	}
 
 	_ensureModuleReturnValue( module, x ) {
-		if ( x === null || x === undefined )
+		if ( !this._isValidReturnValue( x ) )
 			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
+	}
+
+	_isValidReturnValue( x ) {
+		return x !== null && x !== undefined;
 	}
 
 	_doRegister( mod ) {
