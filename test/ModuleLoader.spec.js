@@ -544,7 +544,7 @@ describe( 'ModuleLoader', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
 			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', _.noop, () => expect( counter ).to.be.eql( 1 ) ] );
+			moduleLoader.register( [ 'b', () => { return 1; }, () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
 

@@ -302,7 +302,9 @@ class ModuleLoader {
 					stale = false;
 					m.order = lastDependency + 1;
 					m.dependenciesPromise = promises;
-					m.startPromise = Bluebird.all( m.dependenciesPromise ).spread( m.start );
+					m.startPromise = Bluebird.all( m.dependenciesPromise )
+						.then( args => m.start.apply( m, args ) )
+						.then( x => this._ensureModuleReturnValue( m, x ) );
 				}
 
 
