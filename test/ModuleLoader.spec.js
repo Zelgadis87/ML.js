@@ -193,6 +193,17 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
+		it( 'should throw an error if a root module returns undefined', function() {
+			moduleLoader.register( { name: 'a', dependencies: [], start: _.noop } );
+			return expect( moduleLoader.start() ).to.be.rejected;
+		} );
+
+		it( 'should throw an error if a dependant module returns undefined', function() {
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => 1 } );
+			moduleLoader.register( { name: 'b', dependencies: 'a', start: _.noop } );
+			return expect( moduleLoader.start() ).to.be.rejected;
+		} );
+
 		it( 'should load modules in parallel when no dependency is shared', function() {
 
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
@@ -544,7 +555,7 @@ describe( 'ModuleLoader', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
 			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', _.noop, () => expect( counter ).to.be.eql( 1 ) ] );
+			moduleLoader.register( [ 'b', () => { return 1; }, () => expect( counter ).to.be.eql( 1 ) ] );
 			return moduleLoader.start();
 		} );
 
@@ -647,6 +658,38 @@ describe( 'ModuleLoader', function() {
 			] );
 
 		} ).slow( 200 );
+
+	} );
+
+	describe( '#registerValue', function() {
+
+		it( 'should resolve the registered value', function() {
+			moduleLoader.registerValue( 'a', 1 );
+			moduleLoader.registerValue( 'b', 'b' );
+			moduleLoader.registerValue( 'c', [ 1, 2 ] );
+			moduleLoader.registerValue( 'd', { d: 1 } );
+			moduleLoader.start();
+			return Promise.all( [
+				expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.deep.equal( 1 ),
+				expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.deep.equal( 'b' ),
+				expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.deep.equal( [ 1, 2 ] ),
+				expect( moduleLoader.resolve( 'd' ) ).to.be.eventually.deep.equal( { d: 1 } )
+			] );
+		} );
+
+		it( 'should not allow null or undefined values', function() {
+			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
+		} );
+
+		it( 'should not allow values with null or undefined names', function() {
+			expect( () => moduleLoader.registerValue( null, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( undefined, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( null, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( {}, 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( '', 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( 2, 1 ) ).to.throw( Error );
+		} );
 
 	} );
 

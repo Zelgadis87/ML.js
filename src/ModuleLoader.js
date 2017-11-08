@@ -119,6 +119,17 @@ class ModuleLoader {
 
 	}
 
+	registerValue( name, value ) {
+		if ( !this._isValidReturnValue( value ) )
+			throw new Error( `Value ${ value } is not valid for module ${ name }` );
+		return this._doRegister( {
+			name: name,
+			dependencies: [],
+			start: () => value,
+			stop: _.noop
+		} );
+	}
+
 	registerFile( filepath ) {
 		let lib = require( filepath );
 		if ( _.isFunction( lib ) ) {
@@ -176,9 +187,13 @@ class ModuleLoader {
 	}
 
 	_ensureModuleReturnValue( module, x ) {
-		if ( x === null || x === undefined )
+		if ( !this._isValidReturnValue( x ) )
 			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
+	}
+
+	_isValidReturnValue( x ) {
+		return x !== null && x !== undefined;
 	}
 
 	_doRegister( mod ) {
@@ -302,7 +317,9 @@ class ModuleLoader {
 					stale = false;
 					m.order = lastDependency + 1;
 					m.dependenciesPromise = promises;
-					m.startPromise = Bluebird.all( m.dependenciesPromise ).spread( m.start );
+					m.startPromise = Bluebird.all( m.dependenciesPromise )
+						.then( args => m.start.apply( m, args ) )
+						.then( x => this._ensureModuleReturnValue( m, x ) );
 				}
 
 
