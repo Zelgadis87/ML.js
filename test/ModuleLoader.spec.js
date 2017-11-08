@@ -193,6 +193,17 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
+		it( 'should throw an error if a root module returns undefined', function() {
+			moduleLoader.register( { name: 'a', dependencies: [], start: _.noop } );
+			return expect( moduleLoader.start() ).to.be.rejected;
+		} );
+
+		it( 'should throw an error if a dependant module returns undefined', function() {
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => 1 } );
+			moduleLoader.register( { name: 'b', dependencies: 'a', start: _.noop } );
+			return expect( moduleLoader.start() ).to.be.rejected;
+		} );
+
 		it( 'should load modules in parallel when no dependency is shared', function() {
 
 			let counter = 0, delayedCount = () => Bluebird.delay( 10 ).then( () => counter++ );
