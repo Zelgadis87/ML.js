@@ -357,9 +357,11 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should throw an error if the given argument is not a valid dependency name', function() {
-			expect( () => moduleLoader.resolve() ).to.throw( Error );
-			expect( () => moduleLoader.resolve( 2 ) ).to.throw( Error );
-			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw( Error );
+			return Promise.all( [
+				expect( moduleLoader.resolve() ).to.be.eventually.rejected,
+				expect( moduleLoader.resolve( 2 ) ).to.be.eventually.rejected,
+				expect( moduleLoader.resolve( [ 2 ] ) ).to.be.eventually.rejected
+			] );
 		} );
 
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
