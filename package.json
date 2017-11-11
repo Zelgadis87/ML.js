@@ -1,12 +1,11 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
     "lint": "npm run eslint",
     "eslint": "eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
-    "pretest": "npm run lint",
     "test": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run execute-tests",
     "execute-tests": "mocha ./test/**/*.spec.js",
     "coverage": "nyc npm run test",

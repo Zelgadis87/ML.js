@@ -356,12 +356,7 @@ describe( 'ModuleLoader', function() {
 			} );
 		} );
 
-		it( 'should throw an error when the loader has not been started', function() {
-			return expect( () => moduleLoader.resolve( 'a' ) ).to.throw( Error );
-		} );
-
 		it( 'should throw an error if the given argument is not a valid dependency name', function() {
-			moduleLoader.start();
 			expect( () => moduleLoader.resolve() ).to.throw( Error );
 			expect( () => moduleLoader.resolve( 2 ) ).to.throw( Error );
 			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw( Error );
@@ -369,34 +364,35 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
 			moduleLoader.register( { name: 'x', dependencies: [] } );
-			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'y' ) ).to.be.eventually.undefined;
 		} );
 
 		it( 'should eventually return the module calculated value', function() {
-			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.eql( 1 );
 		} );
 
-		it( 'should eventually return the module promised value', function() {
+		it( 'should eventually return a value wether it has been started explicitly or not', function() {
+			let promise1 = expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.eql( 1 );
 			moduleLoader.start();
+			let promise2 = expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.eql( 2 );
+			return Promise.all( [ promise1, promise2 ] );
+		} );
+
+		it( 'should eventually return the module promised value', function() {
 			return expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.eql( 2 );
 		} );
 
 		it( 'should eventually return the module chained value', function() {
-			moduleLoader.start();
 			return expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.eql( 4 );
 		} );
 
 		it( 'should allow resolution of multiple modules', function() {
-			moduleLoader.start();
 			return expect( moduleLoader.resolve( [ 'a', 'b' ] ) ).to.be.eventually.deep.equal( [ 1, 2 ] );
 		} );
 
 		it( 'should allow resolution of all listed modules', function() {
 			moduleLoader.start();
-			let names = moduleLoader.list();
-			let resolution = moduleLoader.resolve( names );
+			let resolution = moduleLoader.resolve( [ 'a', 'b', 'c' ] );
 			return Promise.all( [
 				expect( resolution ).to.eventually.contain( 1 ),
 				expect( resolution ).to.eventually.contain( 2 ),
