@@ -1,4 +1,7 @@
 
+## v0.7.2 (2017/11/11 14:50)
+- Change: ModuleLoader.resolve is now an async method
+
 ## v0.7.1 (2017/11/11 12:12)
 - Changed: ModuleLoader.resolve will not throw an error if ModuleLoader has not been explicitly started yet
 
