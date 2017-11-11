@@ -114,7 +114,7 @@ class ModuleLoader {
 				return Promise.resolve( undefined );
 			return this.modules[ dep ].startPromise;
 		} else {
-			throw new Error( `Invalid dependency name, string expected, got: ${ dep }` );
+			throw new Error( `Invalid dependency name, string or array expected, got: ${ dep }` );
 		}
 
 	}
