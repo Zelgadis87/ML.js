@@ -391,13 +391,8 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should allow resolution of all listed modules', function() {
-			moduleLoader.start();
-			let resolution = moduleLoader.resolve( [ 'a', 'b', 'c' ] );
-			return Promise.all( [
-				expect( resolution ).to.eventually.contain( 1 ),
-				expect( resolution ).to.eventually.contain( 2 ),
-				expect( resolution ).to.eventually.contain( 4 )
-			] );
+			let resolution = moduleLoader.resolve( moduleLoader.list() );
+			return expect( resolution ).to.be.eventually.fulfilled;
 		} );
 
 	} );
