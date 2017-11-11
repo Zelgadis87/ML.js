@@ -101,9 +101,6 @@ class ModuleLoader {
 
 	resolve( dep ) {
 
-		if ( !this.started )
-			throw new Error( 'ModuleLoader not yet started.' );
-
 		if ( _.isArray( dep ) ) {
 			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
 			if ( invalidDependencies.length > 0 )
@@ -112,6 +109,8 @@ class ModuleLoader {
 		} else if ( isValidDependency( dep ) ) {
 			if ( !this.modules[ dep ] )
 				return Promise.resolve( undefined );
+			if ( !this.started )
+				this.start();
 			return this.modules[ dep ].startPromise;
 		} else {
 			throw new Error( `Invalid dependency name, string or array expected, got: ${ dep }` );
