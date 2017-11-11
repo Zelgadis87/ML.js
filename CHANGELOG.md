@@ -1,15 +1,13 @@
 
 ## v0.7.1 (2017/11/11 12:12)
-
 - Changed: ModuleLoader.resolve will not throw an error if ModuleLoader has not been explicitly started yet
 
 ## v0.7.0 (2017/11/08 21:20)
-
-- Implemented registerValue functionality
+- Added: ModuleLoader.registerValue
 
 ## v0.6.0 (2017/11/07 21:42)
-
-- Added registerFile and registerDirectory functionalities
+- Added: ModuleLoader.registerFile
+- Added: ModuleLoader.registerDirectory
 
 ## v0.5.0 (2017/07/02 17:44)
 - Now supports a simplified syntax, passing the name, dependencies and the object that implements start/stop functions
