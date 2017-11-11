@@ -357,9 +357,11 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should throw an error if the given argument is not a valid dependency name', function() {
-			expect( () => moduleLoader.resolve() ).to.throw( Error );
-			expect( () => moduleLoader.resolve( 2 ) ).to.throw( Error );
-			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw( Error );
+			return Promise.all( [
+				expect( moduleLoader.resolve() ).to.be.eventually.rejected,
+				expect( moduleLoader.resolve( 2 ) ).to.be.eventually.rejected,
+				expect( moduleLoader.resolve( [ 2 ] ) ).to.be.eventually.rejected
+			] );
 		} );
 
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
@@ -391,13 +393,8 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should allow resolution of all listed modules', function() {
-			moduleLoader.start();
-			let resolution = moduleLoader.resolve( [ 'a', 'b', 'c' ] );
-			return Promise.all( [
-				expect( resolution ).to.eventually.contain( 1 ),
-				expect( resolution ).to.eventually.contain( 2 ),
-				expect( resolution ).to.eventually.contain( 4 )
-			] );
+			let resolution = moduleLoader.resolve( moduleLoader.list() );
+			return expect( resolution ).to.be.eventually.fulfilled;
 		} );
 
 	} );
