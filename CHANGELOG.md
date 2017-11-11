@@ -1,4 +1,8 @@
 
+## v0.7.1 (2017/11/11 12:12)
+
+- Changed: ModuleLoader.resolve will not throw an error if ModuleLoader has not been explicitly started yet
+
 ## v0.7.0 (2017/11/08 21:20)
 
 - Implemented registerValue functionality
