@@ -26,10 +26,10 @@
     "parse-function": "^5.0.23"
   },
   "devDependencies": {
-    "@zelgadis87/npm-versionator": "^0.6.1",
+    "@zelgadis87/npm-versionator": "^0.6.2",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
-    "eslint": "^4.10.0",
+    "eslint": "^4.11.0",
     "eslint-plugin-mocha": "^4.11.0",
     "mocha": "^4.0.1",
     "nyc": "^11.3.0"
