@@ -105,10 +105,10 @@ class ModuleLoader {
 			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
-			return Promise.all( dep.map( ( name ) => this.resolve( name ) ) );
+			return Bluebird.all( dep.map( ( name ) => this.resolve( name ) ) );
 		} else if ( isValidDependency( dep ) ) {
 			if ( !this.modules[ dep ] )
-				return Promise.resolve( undefined );
+				return Bluebird.resolve( undefined );
 			if ( !this.started )
 				this.start();
 			return this.modules[ dep ].startPromise;

@@ -1,6 +1,6 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,7 @@
     "parse-function": "^5.0.23"
   },
   "devDependencies": {
-    "@zelgadis87/npm-versionator": "^0.6.2",
+    "@zelgadis87/npm-versionator": "^1.0.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "eslint": "^4.11.0",

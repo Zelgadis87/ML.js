@@ -1,4 +1,7 @@
 
+## v0.7.3 (2017/11/13 21:02)
+- Fix: Use Bluebird promises in resolve method
+
 ## v0.7.2 (2017/11/11 14:50)
 - Change: ModuleLoader.resolve is now an async method
 
