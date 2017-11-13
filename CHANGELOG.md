@@ -1,4 +1,7 @@
 
+## v0.7.4 (2017/11/13 21:27)
+- Fix: Resolved an issue in the stop method where promises were not correctly handled
+
 ## v0.7.3 (2017/11/13 21:02)
 - Fix: Use Bluebird promises in resolve method
 

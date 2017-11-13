@@ -345,7 +345,8 @@ class ModuleLoader {
 			.reduce( ( partialPromise, m ) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.
-					return partialPromise.then( Bluebird.resolve( [].concat( m.startPromise ).concat( m.dependenciesPromise ) ).spread( m.stop ) );
+					let promises = [].concat( m.startPromise ).concat( m.dependenciesPromise );
+					return partialPromise.then( () => Bluebird.resolve( promises ).spread( m.stop ) );
 				} else {
 					// If the module was still waiting for dependencies, cancel it and ignore it.
 					m.startPromise.cancel();
