@@ -48,12 +48,13 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( { name: 'a', dependencies: {} } ) ).to.throw( Error );
 		} );
 
-		it( 'should not allow a module to change name', function() {
-			let module = { name: 'a' };
-			moduleLoader.register( module );
+		it( 'should not consider a module name property at runtime', function() {
+			let moduleA = { name: 'a' };
+			moduleLoader.register( moduleA );
+			moduleA.name = 'b';
 
-			module.name = 'b';
-			expect( module.name ).to.be.eql( 'a' );
+			let moduleB = { name: 'b' };
+			expect( () => moduleLoader.register( moduleB ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module with minimal configuration', function() {
@@ -334,6 +335,30 @@ describe( 'ModuleLoader', function() {
 			return moduleLoader.start().then( () => expect( obj.times ).to.be.eql( 2 ) );
 		} );
 
+		it( 'should support ES6 classes', function() {
+
+			let count = 0;
+			class Test_A {
+				constructor() { this.test = 'a'; }
+				start() { return this; }
+			}
+			class Test_B {
+				constructor() { this.test = 'b'; }
+				start( a ) {
+					count++;
+					expect( a ).to.be.instanceof( Test_A );
+					expect( a.test ).to.be.eql( 'a' );
+					return this;
+				}
+			}
+
+			moduleLoader.register( 'a', new Test_A() );
+			moduleLoader.register( 'b', 'a', new Test_B() );
+			return moduleLoader.start().then( () => {
+				expect( count ).to.be.eql( 1 );
+			} );
+		} );
+
 	} );
 
 	describe( '#resolve', function() {
@@ -546,10 +571,35 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should support array syntax ', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
-			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
+			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', () => { return 1; }, () => expect( counter ).to.be.eql( 1 ) ] );
-			return moduleLoader.start();
+			moduleLoader.register( [ 'b', () => { return 1; }, () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } ] );
+			return moduleLoader.start().then( () => moduleLoader.stop() );
+		} );
+
+		it( 'should support object syntax ', function() {
+
+			class Test_A {
+				constructor() { this.test = 1; }
+			}
+			let a = new Test_A();
+
+			class Test_B {
+				start( dep1 ) {
+					expect( dep1 ).to.be.instanceof( Test_A );
+					return this;
+				}
+				stop( me, dep1 ) {
+					expect( me ).to.be.eql( b );
+					expect( dep1 ).to.be.instanceof( Test_A );
+					return this;
+				}
+			}
+			let b = new Test_B();
+
+			moduleLoader.register( 'a', a );
+			moduleLoader.register( 'b', [ 'a' ], b );
+			return moduleLoader.start().then( () => moduleLoader.stop() );
 		} );
 
 	} );

@@ -63,20 +63,27 @@ class ModuleLoader {
 					throw new Error( 'Module does not define a valid start function in array syntax.' );
 				}
 			}
-		} else if ( _.isObject( name ) ) {
-			return this._doRegister( name );
 		} else {
 			let bind = function( fn, _this ) {
-				return fn ? _.bind( fn, _this ) : undefined;
+				return fn && _.isFunction( fn ) ? _.bind( fn, _this ) : fn;
 			};
 
-			if ( arguments.length === 2 && _.isObject( dependencies ) ) {
+			if ( arguments.length === 1 && _.isObject( name ) ) {
+				return this._doRegister( {
+					name: name.name,
+					dependencies: name.dependencies,
+					start: bind( name.start, name ),
+					stop: bind( name.stop, name ),
+					obj: name
+				} );
+			} else if ( arguments.length === 2 && _.isObject( dependencies ) ) {
 				// Object instance mode with no dependencies
 				return this._doRegister( {
 					name: name,
 					dependencies: [],
 					start: bind( dependencies.start, dependencies ),
-					stop: bind( dependencies.stop, dependencies )
+					stop: bind( dependencies.stop, dependencies ),
+					obj: dependencies
 				} );
 			} else if ( arguments.length === 3 && _.isObject( start ) ) {
 				// Object instance mode with dependencies
@@ -84,7 +91,8 @@ class ModuleLoader {
 					name: name,
 					dependencies: dependencies,
 					start: bind( start.start, start ),
-					stop: bind( start.stop, start )
+					stop: bind( start.stop, start ),
+					obj: start
 				} );
 			} else {
 				// Spread syntax
@@ -177,6 +185,8 @@ class ModuleLoader {
 		return this.stopPromise;
 	}
 
+	// #region current loader state
+
 	get started() {
 		return this.startPromise !== null;
 	}
@@ -184,6 +194,9 @@ class ModuleLoader {
 	get stopped() {
 		return this.stopPromise !== null;
 	}
+
+	// #endregion
+	// #region private methods
 
 	_ensureModuleReturnValue( module, x ) {
 		if ( !this._isValidReturnValue( x ) )
@@ -210,6 +223,7 @@ class ModuleLoader {
 			dependencies: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
+			obj: mod.obj || mod,
 			order: null,
 			dependenciesPromise: null,
 			startPromise: null,
@@ -248,7 +262,7 @@ class ModuleLoader {
 
 		if ( !_.isFunction( mod.start ) ) {
 			if ( _.isUndefined( mod.start ) ) {
-				mod.start = () => { return {}; };
+				mod.start = function() { return mod.obj; };
 			} else {
 				throw new Error( `Module ${ mod.name } does not define a valid start property.` );
 			}
@@ -256,7 +270,7 @@ class ModuleLoader {
 
 		if ( !_.isFunction( mod.stop ) ) {
 			if ( _.isUndefined( mod.stop ) ) {
-				mod.stop = _.noop;
+				mod.stop = function() { return mod.obj; };
 			} else {
 				throw new Error( `Module ${ mod.name } does not define a valid stop property.` );
 			}
@@ -364,6 +378,8 @@ class ModuleLoader {
 		let filename = path.parse( filepath ).name;
 		return _.camelCase( filename );
 	}
+
+	// #endregion
 
 }
 
