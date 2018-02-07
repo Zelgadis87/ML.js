@@ -546,10 +546,10 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should support array syntax ', function() {
 			let counter = 3, delayedCount = () => Bluebird.delay( 10 ).then( () => counter-- );
-			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } } );
+			moduleLoader.register( { name: 'a', dependencies: [], stop: () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], stop: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
-			moduleLoader.register( [ 'b', () => { return 1; }, () => expect( counter ).to.be.eql( 1 ) ] );
-			return moduleLoader.start();
+			moduleLoader.register( [ 'b', () => { return 1; }, () => { expect( counter ).to.be.eql( 3 ); return delayedCount(); } ] );
+			return moduleLoader.start().then( () => moduleLoader.stop() );
 		} );
 
 	} );
