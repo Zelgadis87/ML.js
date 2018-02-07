@@ -48,12 +48,13 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( { name: 'a', dependencies: {} } ) ).to.throw( Error );
 		} );
 
-		it( 'should not allow a module to change name', function() {
-			let module = { name: 'a' };
-			moduleLoader.register( module );
+		it( 'should not consider a module name property at runtime', function() {
+			let moduleA = { name: 'a' };
+			moduleLoader.register( moduleA );
+			moduleA.name = 'b';
 
-			module.name = 'b';
-			expect( module.name ).to.be.eql( 'a' );
+			let moduleB = { name: 'b' };
+			expect( () => moduleLoader.register( moduleB ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module with minimal configuration', function() {
