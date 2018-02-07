@@ -1,6 +1,6 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "execute-tests": "npx mocha ./test/**/*.spec.js",
     "coverage": "npx nyc npm run test",
     "postcoverage": "npx nyc report --reporter=lcov",
-    "versionate": "npx npm-versionator"
+    "versionate": "npx npm-versionator",
+    "postversion": "npx codecov --file=coverage/lcov.info --token=ba9e41d5-3bd7-4a1f-98c0-1656947b9e2c"
   },
   "author": "Zelgadis87",
   "license": "ISC",
