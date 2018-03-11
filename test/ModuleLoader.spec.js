@@ -151,7 +151,7 @@ describe( 'ModuleLoader', function() {
 	describe( '#start', function() {
 
 		it( 'should do nothing if no module is registered', function() {
-			expect( moduleLoader.start() ).to.be.eventually.fulfilled;
+			return expect( moduleLoader.start() ).to.be.eventually.fulfilled;
 		} );
 
 		it( 'should run modules that have no dependencies', function() {
@@ -177,7 +177,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			moduleLoader.register( { name: 'c', dependencies: [ 'a', 'b' ] } );
-			expect( moduleLoader.start() ).to.eventually.throw( Error );
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 
 		} );
 
@@ -192,7 +192,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'a', dependencies: [ 'b' ] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
 			moduleLoader.register( { name: 'c', dependencies: [ 'a' ] } );
-			expect( moduleLoader.start() ).to.eventually.throw( Error );
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 
 		} );
 
@@ -200,7 +200,7 @@ describe( 'ModuleLoader', function() {
 
 			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'c' ] } );
-			expect( moduleLoader.start() ).to.eventually.throw( Error );
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 
 		} );
 
@@ -236,14 +236,14 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
-		it( 'should return a resolved Promise when some modules are registered', function() {
+		it( 'should eventually fullfill a Promise when some modules are registered', function() {
 			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ] } );
 			expect( moduleLoader.start() ).to.be.an.instanceOf( Bluebird );
 			return expect( moduleLoader.start() ).to.eventually.be.fulfilled;
 		} );
 
-		it( 'should return a rejected Promise if a start function does not return a value', function() {
+		it( 'should eventually reject a Promise if a start function does not return a value', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: function() { } } );
 			expect( moduleLoader.start() ).to.be.an.instanceOf( Bluebird );
 			return expect( moduleLoader.start() ).to.eventually.be.rejected;
@@ -370,7 +370,7 @@ describe( 'ModuleLoader', function() {
 			} );
 		} );
 
-		it( 'should NOT allow undefined return values for named modules', function() {
+		it( 'should eventually reject undefined return values for named modules', function() {
 			moduleLoader.register( {
 				name: 'a',
 				start: () => undefined
@@ -378,7 +378,7 @@ describe( 'ModuleLoader', function() {
 			return expect( moduleLoader.start() ).to.be.eventually.rejected;
 		} );
 
-		it( 'should allow undefined return values for anonymous modules', function() {
+		it( 'should eventually allow undefined return values for anonymous modules', function() {
 			moduleLoader.register( {
 				start: () => undefined
 			} );
@@ -437,11 +437,11 @@ describe( 'ModuleLoader', function() {
 			return expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.eql( 4 );
 		} );
 
-		it( 'should allow resolution of multiple modules', function() {
+		it( 'should eventually allow resolution of multiple modules', function() {
 			return expect( moduleLoader.resolve( [ 'a', 'b' ] ) ).to.be.eventually.deep.equal( [ 1, 2 ] );
 		} );
 
-		it( 'should allow resolution of all listed modules', function() {
+		it( 'should eventually allow resolution of all listed modules', function() {
 			let resolution = moduleLoader.resolve( moduleLoader.list() );
 			return expect( resolution ).to.be.eventually.fulfilled;
 		} );
@@ -661,29 +661,28 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should register dependencies for injection', function() {
 			[ 'a', 'a2', 'b', 'c', 'd' ].forEach( regFile );
-			moduleLoader.start();
-
-			return Promise.all( [
-				expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 ),
-				expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 ),
-				expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 ),
-				expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 ),
-				expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 )
-			] );
-
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 ),
+					expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 ),
+					expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 ),
+					expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 ),
+					expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 )
+				] )
+			);
 		} );
 
 		it( 'should register dependencies with camel-case naming', function() {
 			[ 'a', 'ClassName', 'long-name' ].forEach( regFile );
-			moduleLoader.start();
-
-			return Promise.all( [
-				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined
-			] );
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'className' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'longName' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'ClassName' ) ).to.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'long-name' ) ).to.be.eventually.undefined
+				] )
+			);
 		} );
 
 	} );
@@ -699,49 +698,46 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should register all modules in a folder', function() {
-
 			moduleLoader.registerDirectory( testDirectory );
-			moduleLoader.start();
-
-			return Promise.all( [
-				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
-			] );
-
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+				] )
+			);
 		} ).slow( 200 );
 
 		it( 'should register all modules in a folder and its subfolders, if asked', function() {
-
 			moduleLoader.registerDirectory( testDirectory, true );
-			moduleLoader.start();
-
-			return Promise.all( [
-				expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-				expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
-			] );
-
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
+				] )
+			);
 		} ).slow( 200 );
 
 	} );
 
 	describe( '#registerValue', function() {
 
-		it( 'should resolve the registered value', function() {
+		it( 'should eventually resolve the registered value', function() {
 			moduleLoader.registerValue( 'a', 1 );
 			moduleLoader.registerValue( 'b', 'b' );
 			moduleLoader.registerValue( 'c', [ 1, 2 ] );
 			moduleLoader.registerValue( 'd', { d: 1 } );
-			moduleLoader.start();
-			return Promise.all( [
-				expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.deep.equal( 1 ),
-				expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.deep.equal( 'b' ),
-				expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.deep.equal( [ 1, 2 ] ),
-				expect( moduleLoader.resolve( 'd' ) ).to.be.eventually.deep.equal( { d: 1 } )
-			] );
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.be.eventually.deep.equal( 1 ),
+					expect( moduleLoader.resolve( 'b' ) ).to.be.eventually.deep.equal( 'b' ),
+					expect( moduleLoader.resolve( 'c' ) ).to.be.eventually.deep.equal( [ 1, 2 ] ),
+					expect( moduleLoader.resolve( 'd' ) ).to.be.eventually.deep.equal( { d: 1 } )
+				] )
+			);
 		} );
 
 		it( 'should not allow null or undefined values', function() {
