@@ -59,6 +59,7 @@ describe( 'ModuleLoader', function() {
 		it( 'should allow a module with minimal configuration', function() {
 			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( { name: 'b' } ) ).to.not.throw( Error );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled;
 		} );
 
 		it( 'should allow a module with a valid object definition', function() {

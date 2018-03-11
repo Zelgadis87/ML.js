@@ -223,7 +223,7 @@ class ModuleLoader {
 			dependencies: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
-			obj: mod.obj || mod,
+			obj: mod.obj,
 			order: null,
 			dependenciesPromise: null,
 			startPromise: null,
@@ -259,6 +259,9 @@ class ModuleLoader {
 		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
 			throw new Error( `Module '${ mod.name }' specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
+
+		// Ensure that a mod object exists.
+		mod.obj = mod.obj || mod;
 
 		if ( !_.isFunction( mod.start ) ) {
 			if ( _.isUndefined( mod.start ) ) {
