@@ -182,10 +182,12 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
-		// Please note that this test is actually included in the circular dependency one since,
-		// without a root module, a circular dependency is mathematically required to happen.
-		// The test is only here to cover for the more descriptive error message returned to
-		// the user in this particular case.
+		/**
+		 * Please note that this test is actually included in the circular dependency one since,
+		 * without a root module, a circular dependency is mathematically required to happen.
+		 * The test is only here to cover for the more descriptive error message returned to
+		 * the user in this particular case.
+		 */
 		it( 'should throw an error if no root modules are found', function() {
 
 			moduleLoader.register( { name: 'a', dependencies: [ 'b' ] } );
@@ -289,6 +291,11 @@ describe( 'ModuleLoader', function() {
 			return moduleLoader.start();
 		} );
 
+		/**
+		 * A module value changed by another module is dangerous, as it is prone to race conditions and order requirements which cannot be satisfied by this library.
+		 * On the other hand, forcing a different instance of a dependency per module means that no communication can ever be accomplished between modules.
+		 * Between the two evils, we prefer the shared instance way, moving the race condition problems up in the hands of the user.
+		 */
 		it( 'should allow different modules to share state between dependencies', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: () => { return { value: 1 }; } } );
 			moduleLoader.register( {
@@ -301,6 +308,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( {
 				name: 'c', dependencies: [ 'a', 'b' ], start: ( a, b ) => {
 					expect( a.value ).to.be.eql( 0 );
+					expect( b ).to.be.eql( 1 );
 					return 1;
 				}
 			} );
