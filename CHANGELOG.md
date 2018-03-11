@@ -1,4 +1,7 @@
 
+## v0.7.9 (2018/03/11 12:00)
+- Feature: Allow unanymous modules when using Object syntax registration
+
 ## v0.7.4 (2017/11/13 21:27)
 - Fix: Resolved an issue in the stop method where promises were not correctly handled
 
