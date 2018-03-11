@@ -9,7 +9,7 @@ const _ = require( 'lodash' )
 
 Bluebird.config( { cancellation: true } );
 
-let isValidDependency = ( str ) => {
+let isValidDependencyName = ( str ) => {
 	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
 };
 
@@ -111,11 +111,11 @@ class ModuleLoader {
 	resolve( dep ) {
 
 		if ( _.isArray( dep ) ) {
-			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
+			let invalidDependencies = dep.filter( ( name ) => !isValidDependencyName( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
 			return Bluebird.all( dep.map( ( name ) => this.resolve( name ) ) );
-		} else if ( isValidDependency( dep ) ) {
+		} else if ( isValidDependencyName( dep ) ) {
 			if ( !this.modules[ dep ] )
 				return Bluebird.resolve( undefined );
 			if ( !this.started )
@@ -272,7 +272,7 @@ class ModuleLoader {
 			}
 		}
 
-		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
+		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependencyName( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
 			throw new Error( `Module '${ mod.name }' specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
 
