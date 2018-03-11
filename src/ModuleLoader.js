@@ -204,7 +204,7 @@ class ModuleLoader {
 	// #region private methods
 
 	_ensureModuleReturnValue( module, x ) {
-		if ( !this._isValidReturnValue( x ) )
+		if ( !module.anonymous && !this._isValidReturnValue( x ) )
 			throw Error( `Module '${ module.name }' should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
 	}

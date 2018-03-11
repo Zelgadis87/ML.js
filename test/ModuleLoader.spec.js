@@ -370,6 +370,21 @@ describe( 'ModuleLoader', function() {
 			} );
 		} );
 
+		it( 'should NOT allow undefined return values for named modules', function() {
+			moduleLoader.register( {
+				name: 'a',
+				start: () => undefined
+			} );
+			return expect( moduleLoader.start() ).to.be.eventually.rejected;
+		} );
+
+		it( 'should allow undefined return values for anonymous modules', function() {
+			moduleLoader.register( {
+				start: () => undefined
+			} );
+			return expect( moduleLoader.start() ).to.be.eventually.fulfilled;
+		} );
+
 	} );
 
 	describe( '#resolve', function() {
