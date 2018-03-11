@@ -107,7 +107,7 @@ class ModuleLoader {
 
 	}
 
-	async resolve( dep ) {
+	resolve( dep ) {
 
 		if ( _.isArray( dep ) ) {
 			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
