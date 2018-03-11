@@ -180,6 +180,8 @@ class ModuleLoader {
 	}
 
 	stop() {
+		if ( !this.started )
+			throw new Error( 'Cannot stop, loader not even started' );
 		if ( !this.stopped )
 			this.stopPromise = Bluebird.try( this._doStop.bind( this ) );
 		return this.stopPromise;
@@ -355,9 +357,6 @@ class ModuleLoader {
 	}
 
 	_doStop() {
-
-		if ( !this.started )
-			throw new Error( 'Cannot stop, loader not even started' );
 
 		return _( this.modules )
 			.sortBy( 'order' )

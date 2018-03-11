@@ -438,8 +438,8 @@ describe( 'ModuleLoader', function() {
 
 	describe( '#stop', function() {
 
-		it( 'should eventually throw an error if the loader has not been started', function() {
-			expect( moduleLoader.stop() ).to.eventually.throw( Error );
+		it( 'should throw an error if the loader has not been started', function() {
+			expect( () => moduleLoader.stop() ).to.throw( Error );
 		} );
 
 		it( 'should eventually return a resolved Promise', function() {
