@@ -126,6 +126,14 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
 		} );
 
+		it( 'Should throw an exception if already started', function() {
+			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'b', dependencies: 'a' } ) ).to.not.throw( Error );
+			return moduleLoader.start().then( () => {
+				expect( () => moduleLoader.register( 'b' ) ).to.throw( Error );
+			} );
+		} );
+
 	} );
 
 	describe( '#length', function() {

@@ -210,6 +210,9 @@ class ModuleLoader {
 
 	_doRegister( mod ) {
 
+		if ( this.started )
+			throw new Error( 'Cannot register a new module if the ModuleLoader has already been started' );
+
 		mod = this._validateModuleDefinition( mod );
 
 		Object.defineProperty( mod, 'name', {
