@@ -4,6 +4,7 @@ const _ = require( 'lodash' )
 	, fs = require( 'fs' )
 	, path = require( 'path' )
 	, parseFunction = require( 'parse-function' )().parse
+	, isNullOrUndefined = x => _.isNull( x ) || _.isUndefined( x )
 	;
 
 Bluebird.config( { cancellation: true } );
@@ -29,7 +30,6 @@ class ModuleLoader {
 			if ( !_.isUndefined( dependencies ) ) {
 				// Anonymous module registration with explicit parameters
 				return this._doRegister( {
-					name: this._generateAnonymousModuleName(),
 					dependencies: name,
 					start: dependencies,
 					stop: start
@@ -54,7 +54,6 @@ class ModuleLoader {
 						dependencies = arr.slice( 0, -1 );
 					}
 					return this._doRegister( {
-						name: this._generateAnonymousModuleName(),
 						dependencies: dependencies,
 						start: start,
 						stop: stop
@@ -70,7 +69,7 @@ class ModuleLoader {
 
 			if ( arguments.length === 1 && _.isObject( name ) ) {
 				return this._doRegister( {
-					name: name.name || this._generateAnonymousModuleName(),
+					name: name.name,
 					dependencies: name.dependencies,
 					start: bind( name.start, name ),
 					stop: bind( name.stop, name ),
@@ -96,6 +95,8 @@ class ModuleLoader {
 				} );
 			} else {
 				// Spread syntax
+				if ( isNullOrUndefined( name ) && isNullOrUndefined( start ) && isNullOrUndefined( stop ) )
+					throw new Error( `Cannot register a module with a single, non-object definition.` );
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
@@ -127,6 +128,8 @@ class ModuleLoader {
 	}
 
 	registerValue( name, value ) {
+		if ( _.isUndefined( name ) || _.isNull( name ) )
+			throw new Error( `Cannot register a value with a null or undefined name` );
 		if ( !this._isValidReturnValue( value ) )
 			throw new Error( `Value ${ value } is not valid for module '${ name }'` );
 		return this._doRegister( {
@@ -225,6 +228,7 @@ class ModuleLoader {
 
 		this.modules[ mod.name ] = {
 			name: mod.name,
+			anonymous: mod.anonymous,
 			dependencies: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
@@ -241,6 +245,13 @@ class ModuleLoader {
 
 	_validateModuleDefinition( mod ) {
 
+		mod.anonymous = false;
+
+		if ( isNullOrUndefined( mod.name ) ) {
+			mod.name = this._generateAnonymousModuleName();
+			mod.anonymous = true;
+		}
+
 		if ( !_.isString( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
 			throw new Error( 'Module does not define a valid name property: ' + mod.name );
 
@@ -248,7 +259,7 @@ class ModuleLoader {
 			throw new Error( 'Cannot override module definition: ' + mod.name );
 
 		if ( !_.isArray( mod.dependencies ) ) {
-			if ( _.isNull( mod.dependencies ) || _.isUndefined( mod.dependencies ) ) {
+			if ( isNullOrUndefined( mod.dependencies ) ) {
 				mod.dependencies = [];
 			} else if ( _.isString( mod.dependencies ) ) {
 				if ( mod.dependencies === '' ) {
