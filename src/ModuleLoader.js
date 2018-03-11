@@ -20,7 +20,6 @@ class ModuleLoader {
 		this.modules = {};
 		this.startPromise = null;
 		this.stopPromise = null;
-		this._anonymousCounter = 0;
 	}
 
 	register( name, dependencies, start, stop ) {
@@ -387,7 +386,10 @@ class ModuleLoader {
 	}
 
 	_generateAnonymousModuleName() {
-		return 'anonymous-module-' + this._anonymousCounter++;
+		return 'anonymous-' + ( 'xxxxxxxx'.replace( /[xy]/g, function( c ) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : ( r & 0x3 | 0x8 ); // eslint-disable-line no-mixed-operators
+			return v.toString( 16 );
+		} ) );
 	}
 
 	_generateNameFromFilepath( filepath ) {
