@@ -175,13 +175,13 @@ class ModuleLoader {
 
 	start() {
 		if ( !this.started )
-			this.startPromise = this._doStart();
+			this.startPromise = Bluebird.try( this._doStart.bind( this ) );
 		return this.startPromise;
 	}
 
 	stop() {
 		if ( !this.stopped )
-			this.stopPromise = this._doStop();
+			this.stopPromise = Bluebird.try( this._doStop.bind( this ) );
 		return this.stopPromise;
 	}
 
