@@ -126,7 +126,7 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
 		} );
 
-		it( 'Should throw an exception if already started', function() {
+		it( 'should throw an exception if already started', function() {
 			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( { name: 'b', dependencies: 'a' } ) ).to.not.throw( Error );
 			return moduleLoader.start().then( () => {
@@ -152,7 +152,7 @@ describe( 'ModuleLoader', function() {
 	describe( '#start', function() {
 
 		it( 'should do nothing if no module is registered', function() {
-			expect( () => moduleLoader.start() ).to.not.throw();
+			expect( moduleLoader.start() ).to.be.eventually.fulfilled;
 		} );
 
 		it( 'should run modules that have no dependencies', function() {
@@ -233,11 +233,6 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'd', dependencies: [ 'b' ], start: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
 			return moduleLoader.start();
 
-		} );
-
-		it( 'should return a resolved Promise when no modules are registered', function() {
-			expect( moduleLoader.start() ).to.be.an.instanceOf( Bluebird );
-			return expect( moduleLoader.start() ).to.eventually.be.fulfilled;
 		} );
 
 		it( 'should return a resolved Promise when some modules are registered', function() {
