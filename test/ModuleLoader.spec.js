@@ -22,7 +22,6 @@ describe( 'ModuleLoader', function() {
 		it( 'should not allow modules with empty or null names', function() {
 			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( undefined ) ).to.throw( Error );
-			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( '' ) ).to.throw( Error );
 			expect( () => moduleLoader.register( 2 ) ).to.throw( Error );
 		} );
@@ -731,7 +730,7 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should not allow null or undefined values', function() {
-			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
+			expect( () => moduleLoader.registerValue( 'e', null ) ).to.throw( Error );
 			expect( () => moduleLoader.registerValue( 'e', undefined ) ).to.throw( Error );
 		} );
 
