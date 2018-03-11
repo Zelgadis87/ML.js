@@ -4,11 +4,12 @@ const _ = require( 'lodash' )
 	, fs = require( 'fs' )
 	, path = require( 'path' )
 	, parseFunction = require( 'parse-function' )().parse
+	, isNullOrUndefined = x => _.isNull( x ) || _.isUndefined( x )
 	;
 
 Bluebird.config( { cancellation: true } );
 
-let isValidDependency = ( str ) => {
+let isValidDependencyName = ( str ) => {
 	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
 };
 
@@ -19,7 +20,6 @@ class ModuleLoader {
 		this.modules = {};
 		this.startPromise = null;
 		this.stopPromise = null;
-		this._anonymousCounter = 0;
 	}
 
 	register( name, dependencies, start, stop ) {
@@ -29,7 +29,6 @@ class ModuleLoader {
 			if ( !_.isUndefined( dependencies ) ) {
 				// Anonymous module registration with explicit parameters
 				return this._doRegister( {
-					name: this._generateAnonymousModuleName(),
 					dependencies: name,
 					start: dependencies,
 					stop: start
@@ -54,7 +53,6 @@ class ModuleLoader {
 						dependencies = arr.slice( 0, -1 );
 					}
 					return this._doRegister( {
-						name: this._generateAnonymousModuleName(),
 						dependencies: dependencies,
 						start: start,
 						stop: stop
@@ -70,7 +68,7 @@ class ModuleLoader {
 
 			if ( arguments.length === 1 && _.isObject( name ) ) {
 				return this._doRegister( {
-					name: name.name || this._generateAnonymousModuleName(),
+					name: name.name,
 					dependencies: name.dependencies,
 					start: bind( name.start, name ),
 					stop: bind( name.stop, name ),
@@ -96,6 +94,8 @@ class ModuleLoader {
 				} );
 			} else {
 				// Spread syntax
+				if ( isNullOrUndefined( name ) && isNullOrUndefined( start ) && isNullOrUndefined( stop ) )
+					throw new Error( `Cannot register a module with a single, non-object definition.` );
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
@@ -107,14 +107,14 @@ class ModuleLoader {
 
 	}
 
-	async resolve( dep ) {
+	resolve( dep ) {
 
 		if ( _.isArray( dep ) ) {
-			let invalidDependencies = dep.filter( ( name ) => !isValidDependency( name ) );
+			let invalidDependencies = dep.filter( ( name ) => !isValidDependencyName( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
 			return Bluebird.all( dep.map( ( name ) => this.resolve( name ) ) );
-		} else if ( isValidDependency( dep ) ) {
+		} else if ( isValidDependencyName( dep ) ) {
 			if ( !this.modules[ dep ] )
 				return Bluebird.resolve( undefined );
 			if ( !this.started )
@@ -127,6 +127,8 @@ class ModuleLoader {
 	}
 
 	registerValue( name, value ) {
+		if ( _.isUndefined( name ) || _.isNull( name ) )
+			throw new Error( `Cannot register a value with a null or undefined name` );
 		if ( !this._isValidReturnValue( value ) )
 			throw new Error( `Value ${ value } is not valid for module '${ name }'` );
 		return this._doRegister( {
@@ -175,13 +177,15 @@ class ModuleLoader {
 
 	start() {
 		if ( !this.started )
-			this.startPromise = this._doStart();
+			this.startPromise = Bluebird.try( this._doStart.bind( this ) );
 		return this.startPromise;
 	}
 
 	stop() {
+		if ( !this.started )
+			throw new Error( 'Cannot stop, loader not even started' );
 		if ( !this.stopped )
-			this.stopPromise = this._doStop();
+			this.stopPromise = Bluebird.try( this._doStop.bind( this ) );
 		return this.stopPromise;
 	}
 
@@ -199,7 +203,7 @@ class ModuleLoader {
 	// #region private methods
 
 	_ensureModuleReturnValue( module, x ) {
-		if ( !this._isValidReturnValue( x ) )
+		if ( !module.anonymous && !this._isValidReturnValue( x ) )
 			throw Error( `Module '${ module.name }' should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
 	}
@@ -223,6 +227,7 @@ class ModuleLoader {
 
 		this.modules[ mod.name ] = {
 			name: mod.name,
+			anonymous: mod.anonymous,
 			dependencies: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
@@ -239,6 +244,13 @@ class ModuleLoader {
 
 	_validateModuleDefinition( mod ) {
 
+		mod.anonymous = false;
+
+		if ( isNullOrUndefined( mod.name ) ) {
+			mod.name = this._generateAnonymousModuleName();
+			mod.anonymous = true;
+		}
+
 		if ( !_.isString( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
 			throw new Error( 'Module does not define a valid name property: ' + mod.name );
 
@@ -246,7 +258,7 @@ class ModuleLoader {
 			throw new Error( 'Cannot override module definition: ' + mod.name );
 
 		if ( !_.isArray( mod.dependencies ) ) {
-			if ( _.isNull( mod.dependencies ) || _.isUndefined( mod.dependencies ) ) {
+			if ( isNullOrUndefined( mod.dependencies ) ) {
 				mod.dependencies = [];
 			} else if ( _.isString( mod.dependencies ) ) {
 				if ( mod.dependencies === '' ) {
@@ -259,7 +271,7 @@ class ModuleLoader {
 			}
 		}
 
-		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
+		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependencyName( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
 			throw new Error( `Module '${ mod.name }' specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
 
@@ -356,9 +368,6 @@ class ModuleLoader {
 
 	_doStop() {
 
-		if ( !this.started )
-			throw new Error( 'Cannot stop, loader not even started' );
-
 		return _( this.modules )
 			.sortBy( 'order' )
 			.reverse()
@@ -377,7 +386,10 @@ class ModuleLoader {
 	}
 
 	_generateAnonymousModuleName() {
-		return 'anonymous-module-' + this._anonymousCounter++;
+		return 'anonymous-' + ( 'xxxxxxxx'.replace( /[x]/g, function( c ) {
+			var r = Math.random() * 16 | 0, v = ( r & 0x3 | 0x8 ); // eslint-disable-line no-mixed-operators
+			return v.toString( 16 );
+		} ) );
 	}
 
 	_generateNameFromFilepath( filepath ) {

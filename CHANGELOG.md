@@ -1,4 +1,9 @@
 
+## v1.0.0 (2018/03/11 16:50)
+- Breaking change: ModuleLoader.resolve is not an async method anymore
+- Change: Allow anonymous modules to not return a value
+- Improved: Test coverage
+
 ## v0.7.10 (2018/03/11 14:22)
 - Fix: Modules registered using the minimal configuration will now start correctly
 - Fix: Prevent registration of modules on an already started Loader
