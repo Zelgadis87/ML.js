@@ -385,6 +385,15 @@ describe( 'ModuleLoader', function() {
 			return expect( moduleLoader.start() ).to.be.eventually.fulfilled;
 		} );
 
+		it( 'should differentiate between anonymous modules', function() {
+			let counter = 0;
+			let startA = () => counter += 5;
+			let startB = () => counter -= 3;
+			moduleLoader.register( { start: startA } );
+			moduleLoader.register( { start: startB } );
+			return moduleLoader.start().then( () => expect( counter ).to.be.eql( 2 ) );
+		} );
+
 	} );
 
 	describe( '#resolve', function() {

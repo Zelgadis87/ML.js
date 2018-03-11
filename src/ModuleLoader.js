@@ -386,8 +386,8 @@ class ModuleLoader {
 	}
 
 	_generateAnonymousModuleName() {
-		return 'anonymous-' + ( 'xxxxxxxx'.replace( /[xy]/g, function( c ) {
-			var r = Math.random() * 16 | 0, v = c == 'x' ? r : ( r & 0x3 | 0x8 ); // eslint-disable-line no-mixed-operators
+		return 'anonymous-' + ( 'xxxxxxxx'.replace( /[x]/g, function( c ) {
+			var r = Math.random() * 16 | 0, v = ( r & 0x3 | 0x8 ); // eslint-disable-line no-mixed-operators
 			return v.toString( 16 );
 		} ) );
 	}
