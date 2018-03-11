@@ -23,7 +23,6 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( undefined ) ).to.throw( Error );
 			expect( () => moduleLoader.register( null ) ).to.throw( Error );
-			expect( () => moduleLoader.register( {} ) ).to.throw( Error );
 			expect( () => moduleLoader.register( '' ) ).to.throw( Error );
 			expect( () => moduleLoader.register( 2 ) ).to.throw( Error );
 		} );
@@ -105,6 +104,7 @@ describe( 'ModuleLoader', function() {
 		it( 'should support registering anonymous modules', function() {
 			expect( () => moduleLoader.register( [], _.noop ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( [], _.noop, _.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { dependencies: [], start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should not support array syntax without a start function', function() {

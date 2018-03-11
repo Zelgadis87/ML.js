@@ -70,7 +70,7 @@ class ModuleLoader {
 
 			if ( arguments.length === 1 && _.isObject( name ) ) {
 				return this._doRegister( {
-					name: name.name,
+					name: name.name || this._generateAnonymousModuleName(),
 					dependencies: name.dependencies,
 					start: bind( name.start, name ),
 					stop: bind( name.stop, name ),
