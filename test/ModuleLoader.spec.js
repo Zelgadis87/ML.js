@@ -408,9 +408,14 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should throw an error if the given argument is not a valid dependency name', function() {
-			expect( () => moduleLoader.resolve() ).to.throw;
-			expect( () => moduleLoader.resolve( 2 ) ).to.throw;
-			expect( () => moduleLoader.resolve( [ 2 ] ) ).to.throw;
+			expect( () => moduleLoader.resolve() ).to.throw();
+			expect( () => moduleLoader.resolve( 2 ) ).to.throw();
+			expect( () => moduleLoader.resolve( [ 'a', 2 ] ) ).to.throw();
+			expect( () => moduleLoader.resolve( '$' ) ).to.throw();
+			expect( () => moduleLoader.resolve( [ 'a', '$' ] ) ).to.throw();
+			expect( () => moduleLoader.resolve( null ) ).to.throw();
+			expect( () => moduleLoader.resolve( undefined ) ).to.throw();
+			expect( () => moduleLoader.resolve( {} ) ).to.throw();
 		} );
 
 		it( 'should return undefined if the given argument is not a registered dependency', function() {
