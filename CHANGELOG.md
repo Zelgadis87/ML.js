@@ -1,4 +1,7 @@
 
+## v1.0.1 (2018/03/11 17:02)
+- Updated dependencies
+
 ## v1.0.0 (2018/03/11 16:50)
 - Breaking change: ModuleLoader.resolve is not an async method anymore
 - Change: Allow anonymous modules to not return a value
