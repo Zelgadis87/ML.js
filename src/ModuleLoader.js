@@ -121,14 +121,14 @@ class ModuleLoader {
 				this.start();
 			return this.modules[ dep ].startPromise;
 		} else {
-			throw new Error( `Invalid dependency name, string or array expected, got: ${ dep }` );
+			throw new Error( `Invalid dependency name, string or array expected, got: ${ typeof dep }` );
 		}
 
 	}
 
 	registerValue( name, value ) {
 		if ( !this._isValidReturnValue( value ) )
-			throw new Error( `Value ${ value } is not valid for module ${ name }` );
+			throw new Error( `Value ${ value } is not valid for module '${ name }'` );
 		return this._doRegister( {
 			name: name,
 			dependencies: [],
@@ -200,7 +200,7 @@ class ModuleLoader {
 
 	_ensureModuleReturnValue( module, x ) {
 		if ( !this._isValidReturnValue( x ) )
-			throw Error( `Module ${ module.name } should return a valid object, to be used by other modules, got: ${ x } ` );
+			throw Error( `Module '${ module.name }' should return a valid object, to be used by other modules, got: ${ x } ` );
 		return x;
 	}
 
@@ -209,6 +209,9 @@ class ModuleLoader {
 	}
 
 	_doRegister( mod ) {
+
+		if ( this.started )
+			throw new Error( 'Cannot register a new module if the ModuleLoader has already been started' );
 
 		mod = this._validateModuleDefinition( mod );
 
@@ -223,7 +226,7 @@ class ModuleLoader {
 			dependencies: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
-			obj: mod.obj || mod,
+			obj: mod.obj,
 			order: null,
 			dependenciesPromise: null,
 			startPromise: null,
@@ -252,19 +255,22 @@ class ModuleLoader {
 					mod.dependencies = [ mod.dependencies ];
 				}
 			} else {
-				throw new Error( `Module ${ mod.name } does not define a valid dependencies property.` );
+				throw new Error( `Module '${ mod.name }' does not define a valid dependencies property.` );
 			}
 		}
 
 		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependency( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
-			throw new Error( `Module ${ mod.name } specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
+			throw new Error( `Module '${ mod.name }' specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
+
+		// Ensure that a mod object exists.
+		mod.obj = mod.obj || mod;
 
 		if ( !_.isFunction( mod.start ) ) {
 			if ( _.isUndefined( mod.start ) ) {
 				mod.start = function() { return mod.obj; };
 			} else {
-				throw new Error( `Module ${ mod.name } does not define a valid start property.` );
+				throw new Error( `Module '${ mod.name }' does not define a valid start property.` );
 			}
 		}
 
@@ -272,7 +278,7 @@ class ModuleLoader {
 			if ( _.isUndefined( mod.stop ) ) {
 				mod.stop = function() { return mod.obj; };
 			} else {
-				throw new Error( `Module ${ mod.name } does not define a valid stop property.` );
+				throw new Error( `Module '${ mod.name }' does not define a valid stop property.` );
 			}
 		}
 

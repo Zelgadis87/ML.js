@@ -59,6 +59,7 @@ describe( 'ModuleLoader', function() {
 		it( 'should allow a module with minimal configuration', function() {
 			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( { name: 'b' } ) ).to.not.throw( Error );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled;
 		} );
 
 		it( 'should allow a module with a valid object definition', function() {
@@ -123,6 +124,14 @@ describe( 'ModuleLoader', function() {
 		it( 'should support array syntax without dependencies', function() {
 			expect( () => moduleLoader.register( [ _.noop ] ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
+		} );
+
+		it( 'Should throw an exception if already started', function() {
+			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'b', dependencies: 'a' } ) ).to.not.throw( Error );
+			return moduleLoader.start().then( () => {
+				expect( () => moduleLoader.register( 'b' ) ).to.throw( Error );
+			} );
 		} );
 
 	} );
