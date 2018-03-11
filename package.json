@@ -6,8 +6,9 @@
   "scripts": {
     "lint": "npm run eslint",
     "eslint": "npx eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
-    "test": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run execute-tests",
-    "execute-tests": "npx mocha ./test/**/*.spec.js",
+    "test": "npm run eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error && npm run test-dev",
+    "test-dev": "npx mocha ./test/**/*.spec.js",
+    "test-dev-watch": "npm run test-dev -- --watch",
     "coverage": "npx nyc npm run test",
     "postcoverage": "npx nyc report --reporter=lcov",
     "versionate": "npx npm-versionator",
