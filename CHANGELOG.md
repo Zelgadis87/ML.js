@@ -1,4 +1,8 @@
 
+## v0.7.10 (2018/03/11 14:22)
+- Fix: Modules registered using the minimal configuration will now start correctly
+- Fix: Prevent registration of modules on an already started Loader
+
 ## v0.7.9 (2018/03/11 12:00)
 - Feature: Allow unanymous modules when using Object syntax registration
 
