@@ -1,4 +1,9 @@
 
+## v1.0.3 (2018/03/24 00:52)
+- Meta: Added quality badges to README.md
+- Fix: 3rd argument of register could be misinterpeted as an object
+- Fix: Restored test coverage functionality when launched from npm-versionator
+
 ## v1.0.1 (2018/03/11 17:02)
 - Updated dependencies
 
