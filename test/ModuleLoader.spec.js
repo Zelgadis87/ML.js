@@ -370,6 +370,12 @@ describe( 'ModuleLoader', function() {
 			} );
 		} );
 
+		it( 'should distinguish between object instance mode and start function', function() {
+			moduleLoader.register( 'a', [], { start: function() { return this; }, value: 1 } );
+			moduleLoader.register( 'b', [ 'a' ], function( a ) { return expect( a.value ).to.be.eql( 1 ); } );
+			return moduleLoader.start();
+		} );
+
 		it( 'should eventually reject undefined return values for named modules', function() {
 			moduleLoader.register( {
 				name: 'a',

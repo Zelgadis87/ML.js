@@ -66,7 +66,7 @@ class ModuleLoader {
 				return fn && _.isFunction( fn ) ? _.bind( fn, _this ) : fn;
 			};
 
-			if ( arguments.length === 1 && _.isObject( name ) ) {
+			if ( arguments.length === 1 && _.isObjectLike( name ) ) {
 				return this._doRegister( {
 					name: name.name,
 					dependencies: name.dependencies,
@@ -74,7 +74,7 @@ class ModuleLoader {
 					stop: bind( name.stop, name ),
 					obj: name
 				} );
-			} else if ( arguments.length === 2 && _.isObject( dependencies ) ) {
+			} else if ( arguments.length === 2 && _.isObjectLike( dependencies ) ) {
 				// Object instance mode with no dependencies
 				return this._doRegister( {
 					name: name,
@@ -83,7 +83,7 @@ class ModuleLoader {
 					stop: bind( dependencies.stop, dependencies ),
 					obj: dependencies
 				} );
-			} else if ( arguments.length === 3 && _.isObject( start ) ) {
+			} else if ( arguments.length === 3 && _.isObjectLike( start ) ) {
 				// Object instance mode with dependencies
 				return this._doRegister( {
 					name: name,
@@ -91,6 +91,13 @@ class ModuleLoader {
 					start: bind( start.start, start ),
 					stop: bind( start.stop, start ),
 					obj: start
+				} );
+			} else if ( arguments.length === 3 && _.isFunction( start ) ) {
+				// Object instance mode with dependencies
+				return this._doRegister( {
+					name: name,
+					dependencies: dependencies,
+					start: start
 				} );
 			} else {
 				// Spread syntax
