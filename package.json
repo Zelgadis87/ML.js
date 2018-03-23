@@ -10,7 +10,7 @@
     "lint:eslint": "npx eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
     "lint:eslint-strict": "npm run lint:eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error",
     "test:run": "npx mocha ./test/**/*.spec.js",
-    "test:coverage": "npx nyc npm run test:run && npx nyc report --reporter=lcov",
+    "test:coverage": "nyc --reporter=lcov --reporter=text npx mocha ./test/**/*.spec.js",
     "test:watch": "npm run test:run -- --watch"
   },
   "author": "Zelgadis87",
