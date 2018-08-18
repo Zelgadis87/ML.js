@@ -148,16 +148,25 @@ class ModuleLoader {
 
 	registerFile( filepath ) {
 		let lib = require( filepath );
+		let name = this._generateNameFromFilepath( filepath );
 		if ( _.isFunction( lib ) ) {
-			let name = this._generateNameFromFilepath( filepath );
 			let result = parseFunction( lib );
 
+			// Register as new instance.
 			return this._doRegister( {
 				name: name,
 				dependencies: result.args,
 				start: function( ...deps ) {
 					return lib.apply( {}, deps );
 				},
+				stop: _.noop
+			} );
+		} else if ( this._isValidReturnValue( lib ) ) {
+			// Register as value.
+			return this._doRegister( {
+				name: name,
+				dependencies: [],
+				start: () => lib,
 				stop: _.noop
 			} );
 		} else {
@@ -216,7 +225,7 @@ class ModuleLoader {
 	}
 
 	_isValidReturnValue( x ) {
-		return x !== null && x !== undefined;
+		return !_.isNil( x );
 	}
 
 	_doRegister( mod ) {

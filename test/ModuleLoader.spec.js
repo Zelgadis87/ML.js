@@ -663,7 +663,7 @@ describe( 'ModuleLoader', function() {
 		let path = require( 'path' );
 		let regFile = filename => moduleLoader.registerFile( path.join( __dirname, 'files', filename ) );
 
-		it( 'should allow registering external files that define a module', function() {
+		it( 'should allow registering external files that define a module that returns an object constructor', function() {
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'a.js' ) ) ).to.not.throw( Error );
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'a2.js' ) ) ).to.not.throw( Error );
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'b.js' ) ) ).to.not.throw( Error );
@@ -671,11 +671,16 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'd' ) ) ).to.not.throw( Error );
 		} );
 
+		it( 'should allow registering external files that define a module that returns an object value', function() {
+			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'object.js' ) ) ).to.not.throw( Error );
+		} );
+
 		it( 'should not allow registering external files that do not define a module', function() {
+			let x = require( path.join( __dirname, 'files', 'err.js' ) );
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'err.js' ) ) ).to.throw( Error );
 		} );
 
-		it( 'should not allow registering not existing external files', function() {
+		it( 'should not allow registering non-existing external files', function() {
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'missing.js' ) ) ).to.throw( Error );
 		} );
 
