@@ -676,7 +676,6 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should not allow registering external files that do not define a module', function() {
-			let x = require( path.join( __dirname, 'files', 'err.js' ) );
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'err.js' ) ) ).to.throw( Error );
 		} );
 
