@@ -1,4 +1,7 @@
 
+## v1.1.0 (2018/08/18 21:02)
+- New: When registering a file, allow value objects to be registered
+
 ## v1.0.3 (2018/03/24 00:52)
 - Meta: Added quality badges to README.md
 - Fix: 3rd argument of register could be misinterpeted as an object
