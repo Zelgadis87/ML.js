@@ -676,7 +676,6 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should not allow registering external files that do not define a module', function() {
-			let x = require( path.join( __dirname, 'files', 'err.js' ) );
 			expect( () => moduleLoader.registerFile( path.join( __dirname, 'files', 'err.js' ) ) ).to.throw( Error );
 		} );
 
@@ -685,14 +684,15 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should register dependencies for injection', function() {
-			[ 'a', 'a2', 'b', 'c', 'd' ].forEach( regFile );
+			[ 'a', 'a2', 'b', 'c', 'd', 'object' ].forEach( regFile );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
 					expect( moduleLoader.resolve( 'a' ) ).to.eventually.have.property( 'ok', 1 ),
 					expect( moduleLoader.resolve( 'b' ) ).to.eventually.have.property( 'ok', 2 ),
 					expect( moduleLoader.resolve( 'c' ) ).to.eventually.have.property( 'ok', 3 ),
 					expect( moduleLoader.resolve( 'd' ) ).to.eventually.have.property( 'ok', 4 ),
-					expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 )
+					expect( moduleLoader.resolve( 'a2' ) ).to.eventually.have.property( 'ok', 5 ),
+					expect( moduleLoader.resolve( 'object' ) ).to.eventually.have.property( 'ok', 6 )
 				] )
 			);
 		} );
