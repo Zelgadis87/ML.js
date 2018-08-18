@@ -1,4 +1,8 @@
 
+## v1.1.1 (2018/08/18 21:26)
+- Improve: Improved tests
+- Fix: Removed not working bitHound badge from README
+
 ## v1.1.0 (2018/08/18 21:02)
 - New: When registering a file, allow value objects to be registered
 
