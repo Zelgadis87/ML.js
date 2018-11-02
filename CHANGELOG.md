@@ -1,4 +1,7 @@
 
+## v1.1.2 (2018/11/02 13:31)
+- Fix: Fixed potential issue when importing from ES6 module
+
 ## v1.1.1 (2018/08/18 21:26)
 - Improve: Improved tests
 - Fix: Removed not working bitHound badge from README

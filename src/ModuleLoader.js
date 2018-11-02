@@ -3,11 +3,13 @@ const _ = require( 'lodash' )
 	, Bluebird = require( 'bluebird' )
 	, fs = require( 'fs' )
 	, path = require( 'path' )
-	, parseFunction = require( 'parse-function' )().parse
+	, FunctionParser = require( 'parse-function' )
 	, isNullOrUndefined = x => _.isNull( x ) || _.isUndefined( x )
 	;
 
 Bluebird.config( { cancellation: true } );
+
+let functionParser = FunctionParser.default || new FunctionParser();
 
 let isValidDependencyName = ( str ) => {
 	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
@@ -150,7 +152,7 @@ class ModuleLoader {
 		let lib = require( filepath );
 		let name = this._generateNameFromFilepath( filepath );
 		if ( _.isFunction( lib ) ) {
-			let result = parseFunction( lib );
+			let result = functionParser.parse( lib );
 
 			// Register as new instance.
 			return this._doRegister( {

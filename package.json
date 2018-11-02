@@ -1,6 +1,6 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A module loader with dependency injection",
   "main": "index.js",
   "scripts": {
@@ -22,16 +22,16 @@
     "ioc"
   ],
   "dependencies": {
-    "bluebird": "^3.5.1",
-    "lodash": "^4.17.10",
-    "parse-function": "^5.2.10"
+    "bluebird": "^3.5.2",
+    "lodash": "^4.17.11",
+    "parse-function": "^5.2.11"
   },
   "devDependencies": {
     "@zelgadis87/npm-versionator": "^1.0.4",
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "codecov": "^3.0.4",
-    "eslint": "^5.4.0",
+    "codecov": "^3.1.0",
+    "eslint": "^5.8.0",
     "eslint-plugin-mocha": "^5.2.0",
     "mocha": "^5.2.0",
     "nyc": "^12.0.2"
