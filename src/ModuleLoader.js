@@ -9,7 +9,7 @@ const _ = require( 'lodash' )
 
 Bluebird.config( { cancellation: true } );
 
-let functionParser = FunctionParser.default || new FunctionParser();
+let functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
 
 let isValidDependencyName = ( str ) => {
 	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
