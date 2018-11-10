@@ -1,4 +1,7 @@
 
+## v1.1.3 (2018/11/10 12:39)
+- Fix: Import as ES6 module now works correctly (2nd attempt)
+
 ## v1.1.2 (2018/11/02 13:31)
 - Fix: Fixed potential issue when importing from ES6 module
 
