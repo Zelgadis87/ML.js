@@ -5,12 +5,13 @@
   "main": "index.js",
   "scripts": {
     "lint": "npm run lint:eslint",
-    "test": "npm run lint:eslint-strict && npm run test:coverage",
+    "test": "npm run lint:eslint-strict && npm run coverage",
     "versionate": "npx npm-versionator",
     "lint:eslint": "npx eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
     "lint:eslint-strict": "npm run lint:eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error",
     "test:run": "npx mocha ./test/**/*.spec.js",
-    "test:coverage": "nyc --reporter=lcov --reporter=text npx mocha ./test/**/*.spec.js",
+    "coverage": "npx nyc --all --include=*.js --include=src/**/*.js --reporter=lcov --reporter=text mocha ./test/**/*.spec.js",
+    "coverage:html": "npx nyc --all --include=*.js --include=src/**/*.js --reporter=html npm run test:run && start coverage/index.html",
     "test:watch": "npm run test:run -- --watch"
   },
   "author": "Zelgadis87",
