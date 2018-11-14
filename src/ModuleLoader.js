@@ -26,10 +26,10 @@ class ModuleLoader {
 
 	register( name, dependencies, start, stop ) {
 
-		if ( _.isArray( name ) && arguments.length < 4 ) {
-			// Name is missing, shift arguments.
-			if ( !_.isUndefined( dependencies ) ) {
-				// Anonymous module registration with explicit parameters
+		if ( _.isArray( name ) ) {
+
+			if ( dependencies ) {
+				// Spread syntax with anonymous name.
 				return this._doRegister( {
 					dependencies: name,
 					start: dependencies,
@@ -63,12 +63,19 @@ class ModuleLoader {
 					throw new Error( 'Module does not define a valid start function in array syntax.' );
 				}
 			}
+
 		} else {
+
 			let bind = function( fn, _this ) {
-				return fn && _.isFunction( fn ) ? _.bind( fn, _this ) : fn;
+				if ( fn === undefined )
+					return undefined;
+				if ( _.isFunction( fn ) )
+					return _.bind( fn, _this );
+				throw new Error( 'Function expected, got ' + typeof fn );
 			};
 
 			if ( arguments.length === 1 && _.isObjectLike( name ) ) {
+				// Object instance mode
 				return this._doRegister( {
 					name: name.name,
 					dependencies: name.dependencies,
@@ -77,7 +84,7 @@ class ModuleLoader {
 					obj: name
 				} );
 			} else if ( arguments.length === 2 && _.isObjectLike( dependencies ) ) {
-				// Object instance mode with no dependencies
+				// Object instance mode with standalone name
 				return this._doRegister( {
 					name: name,
 					dependencies: [],
@@ -86,7 +93,7 @@ class ModuleLoader {
 					obj: dependencies
 				} );
 			} else if ( arguments.length === 3 && _.isObjectLike( start ) ) {
-				// Object instance mode with dependencies
+				// Object instance mode with name and dependencies
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
@@ -95,22 +102,22 @@ class ModuleLoader {
 					obj: start
 				} );
 			} else if ( arguments.length === 3 && _.isFunction( start ) ) {
-				// Object instance mode with dependencies
+				// Spread syntax with no stop function
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
 					start: start
 				} );
-			} else {
+			} else if ( !isNullOrUndefined( name ) ) {
 				// Spread syntax
-				if ( isNullOrUndefined( name ) && isNullOrUndefined( start ) && isNullOrUndefined( stop ) )
-					throw new Error( `Cannot register a module with a single, non-object definition.` );
 				return this._doRegister( {
 					name: name,
 					dependencies: dependencies,
 					start: start,
 					stop: stop
 				} );
+			} else {
+				throw new Error( `Invalid registration arguments.` );
 			}
 		}
 
