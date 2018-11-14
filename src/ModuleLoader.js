@@ -29,36 +29,22 @@ class ModuleLoader {
 		if ( _.isArray( name ) ) {
 
 			if ( dependencies ) {
-				// Spread syntax with anonymous name.
-				return this._doRegister( {
-					dependencies: name,
-					start: dependencies,
-					stop: start
-				} );
+				// Spread syntax with undefined name.
+				return this.register( { dependencies: name, start: dependencies, stop: start } );
 			} else {
 				// Array syntax definition
-				let arr = name
-					, last = arr.length > 0 ? arr[ arr.length - 1 ] : undefined
-					, prelast = arr.length > 1 ? arr[ arr.length - 2 ] : undefined
-					;
+				let [ deps, prelast, last ] = [ name.slice( 0, -2 ), ...name.slice( -2 ) ];
 
+				if ( last === undefined )
+					last = prelast;
 				if ( _.isFunction( last ) ) {
 					if ( _.isFunction( prelast ) ) {
 						// last two parameters are the start and stop functions, respectively
-						start = prelast;
-						stop = last;
-						dependencies = arr.slice( 0, -2 );
+						return this.register( { dependencies: deps, start: prelast, stop: last } );
 					} else {
 						// last parameter is the start function
-						start = last;
-						stop = undefined;
-						dependencies = arr.slice( 0, -1 );
+						return this.register( { dependencies: [ ...deps, prelast ], start: last } );
 					}
-					return this._doRegister( {
-						dependencies: dependencies,
-						start: start,
-						stop: stop
-					} );
 				} else {
 					throw new Error( 'Module does not define a valid start function in array syntax.' );
 				}
