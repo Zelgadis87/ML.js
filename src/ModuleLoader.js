@@ -31,71 +31,14 @@ class ModuleLoader {
 		this.stopPromise = null;
 	}
 
-	register( name, dependencies, start, stop ) {
-
-		if ( arguments.length === 1 && _.isArray( name ) ) {
-			// Array syntax definition
-			let [ deps, prelast, last ] = [ name.slice( 0, -2 ), ...name.slice( -2 ) ];
-			if ( last === undefined )
-				last = prelast; // case where array has less than 3 elements.
-			if ( _.isFunction( last ) ) {
-				if ( _.isFunction( prelast ) ) {
-					// last two parameters are the start and stop functions, respectively
-					return this.register( { dependencies: deps, start: prelast, stop: last } );
-				} else {
-					// last parameter is the start function
-					return this.register( { dependencies: [ ...deps, prelast ], start: last } );
-				}
-			} else {
-				throw new Error( 'Module does not define a valid start function in array syntax.' );
-			}
-		} else if ( arguments.length === 1 && _.isObjectLike( name ) ) {
-			// Object instance mode
-			return this._doRegister( {
-				name: name.name,
-				dependencies: name.dependencies,
-				start: bind( name.start, name ),
-				stop: bind( name.stop, name ),
-				obj: name
-			} );
-		} else if ( ( arguments.length === 2 || arguments.length === 3 ) && _.isArray( name ) ) {
-			// Spread syntax with undefined name.
-			return this.register( { dependencies: name, start: dependencies, stop: start } );
-		} else if ( arguments.length === 2 && _.isObjectLike( dependencies ) ) {
-			// Object instance mode with standalone name
-			return this._doRegister( {
-				name: name,
-				dependencies: [],
-				start: bind( dependencies.start, dependencies ),
-				stop: bind( dependencies.stop, dependencies ),
-				obj: dependencies
-			} );
-		} else if ( arguments.length === 3 && _.isObjectLike( start ) ) {
-			// Object instance mode with name and dependencies
-			return this._doRegister( {
-				name: name,
-				dependencies: dependencies,
-				start: bind( start.start, start ),
-				stop: bind( start.stop, start ),
-				obj: start
-			} );
-		} else if ( arguments.length === 3 && _.isFunction( start ) ) {
-			// Spread syntax with no stop function
-			return this._doRegister( {
-				name: name,
-				dependencies: dependencies,
-				start: start
-			} );
-		} else if ( _.isString( name ) ) {
-			// Spread syntax with optional parameters
-			return this._doRegister( {
-				name: name,
-				dependencies: dependencies,
-				start: start,
-				stop: stop
-			} );
-		} else {
-			throw new Error( `Invalid registration arguments.` );
+	register( ...args ) {
+		let values = args.slice( 0, 4 );
+		switch ( values.length ) {
+		case 4: return this._register4( ...values );
+		case 3: return this._register3( ...values );
+		case 2: return this._register2( ...values );
+		case 1: return this._register1( ...values );
+		default: throw this._illegalRegistrationError( ...arguments );
 		}
 	}
 
@@ -213,6 +156,111 @@ class ModuleLoader {
 		return !_.isNil( x );
 	}
 
+	_register1( a ) {
+		if ( _.isArray( a ) ) {
+			// Array syntax definition
+			let [ deps, prelast, last ] = [ a.slice( 0, -2 ), a.slice( -2, a.length - 1 )[0], a.slice( -1, a.length )[0] ];
+			if ( this._isArgValidStart( prelast ) && this._isArgValidStop( last ) ) {
+				// last two parameters are the start and stop functions, respectively
+				return this._doRegister( { dependencies: deps, start: prelast, stop: last } );
+			} else if ( this._isArgValidStart( last ) ) {
+				// last parameter is the start function
+				if ( prelast !== undefined ) deps.push( prelast );
+				return this._doRegister( { dependencies: deps, start: last } );
+			} else {
+				throw new Error( 'Module does not define a valid start function in array syntax.' );
+			}
+		} else if ( _.isObjectLike( a ) ) {
+			// Object instance mode
+			return this._doRegister( {
+				name: a.name,
+				dependencies: a.dependencies,
+				start: bind( a.start, a ),
+				stop: bind( a.stop, a ),
+				obj: a
+			} );
+		} else if ( this._isArgValidName( a ) ) {
+			// Minimal syntax with only name.
+			return this._doRegister( { name: a } );
+		} else {
+			throw this._illegalRegistrationError( ...arguments );
+		}
+	}
+
+	_register2( a, b ) {
+		if ( _.isArray( a ) ) {
+			// Anonymous spread syntax with no stop function.
+			return this._doRegister( { dependencies: a, start: b } );
+		} else if ( this._isArgValidName( a ) && _.isObjectLike( b ) ) {
+			// Object instance mode with standalone name
+			return this._doRegister( {
+				name: a,
+				dependencies: [],
+				start: bind( b.start, b ),
+				stop: bind( b.stop, b ),
+				obj: b
+			} );
+		} else if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) ) {
+			// Minimal syntax with only name and dependencies.
+			return this._doRegister( { name: a, dependencies: b } );
+		} else {
+			throw this._illegalRegistrationError( ...arguments );
+		}
+	}
+
+	_register3( a, b, c ) {
+		if ( _.isArray( a ) ) {
+			// Anonymous spread syntax.
+			return this._doRegister( { dependencies: a, start: b, stop: c } );
+		} else if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) && _.isObjectLike( c ) ) {
+			// Object instance mode with name and dependencies
+			return this._doRegister( {
+				name: a,
+				dependencies: b,
+				start: bind( c.start, c ),
+				stop: bind( c.stop, c ),
+				obj: c
+			} );
+		} else if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) && this._isArgValidStart( c ) ) {
+			// Spread syntax with no stop function
+			return this._doRegister( {
+				name: a,
+				dependencies: b,
+				start: c
+			} );
+		} else {
+			throw this._illegalRegistrationError( ...arguments );
+		}
+	}
+
+	_register4( a, b, c, d ) {
+		if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) && this._isArgValidStart( c ) && this._isArgValidStop( d ) ) {
+			return this._doRegister( { name: a, dependencies: b, start: c, stop: d } );
+		} else {
+			throw this._illegalRegistrationError( ...arguments );
+		}
+	}
+
+	_isArgValidName( name ) {
+		return _.isString( name );
+	}
+
+	_isArgValidDependencies( deps ) {
+		return _.isString( deps ) || _.isArray( deps );
+	}
+
+	_isArgValidStart( start ) {
+		return _.isFunction( start );
+	}
+
+	_isArgValidStop( stop ) {
+		return _.isFunction( stop );
+	}
+
+	_illegalRegistrationError( ...args ) {
+		return new Error( 'Invalid registration arguments: ' + JSON.stringify( args ) );
+	}
+
 	_doRegister( mod ) {
 
 		if ( this.started )
@@ -252,24 +300,36 @@ class ModuleLoader {
 			mod.anonymous = true;
 		}
 
-		if ( !_.isString( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
-			throw new Error( 'Module does not define a valid name property: ' + mod.name );
-
 		if ( this.modules[ mod.name ] )
 			throw new Error( 'Cannot override module definition: ' + mod.name );
 
-		if ( !_.isArray( mod.dependencies ) ) {
-			if ( isNullOrUndefined( mod.dependencies ) ) {
+		if ( !this._isArgValidName( mod.name ) || !mod.name.match( /^[A-z0-9-_]+$/ ) )
+			throw new Error( 'Module does not define a valid name property: ' + mod.name );
+
+		if ( isNullOrUndefined( mod.dependencies ) ) {
+			mod.dependencies = [];
+		} else if ( _.isString( mod.dependencies ) ) {
+			if ( mod.dependencies === '' ) {
 				mod.dependencies = [];
-			} else if ( _.isString( mod.dependencies ) ) {
-				if ( mod.dependencies === '' ) {
-					mod.dependencies = [];
-				} else {
-					mod.dependencies = [ mod.dependencies ];
-				}
 			} else {
-				throw new Error( `Module '${ mod.name }' does not define a valid dependencies property.` );
+				mod.dependencies = [ mod.dependencies ];
 			}
+		} else if ( !_.isArray( mod.dependencies ) ) {
+			throw new Error( `Module '${ mod.name }' does not define a valid dependencies property.` );
+		}
+
+		/* istanbul ignore else */
+		if ( _.isUndefined( mod.start ) ) {
+			mod.start = function() { return mod.obj; };
+		} else if ( !this._isArgValidStart( mod.start ) ) {
+			throw new Error( `Module '${ mod.name }' does not define a valid start property.` );
+		}
+
+		/* istanbul ignore else */
+		if ( _.isUndefined( mod.stop ) ) {
+			mod.stop = function() { return mod.obj; };
+		} else if ( !this._isArgValidStop( mod.stop ) ) {
+			throw new Error( `Module '${ mod.name }' does not define a valid stop property.` );
 		}
 
 		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependencyName( d ) || d === mod.name );
@@ -278,22 +338,6 @@ class ModuleLoader {
 
 		// Ensure that a mod object exists.
 		mod.obj = mod.obj || mod;
-
-		if ( !_.isFunction( mod.start ) ) {
-			if ( _.isUndefined( mod.start ) ) {
-				mod.start = function() { return mod.obj; };
-			} else {
-				throw new Error( `Module '${ mod.name }' does not define a valid start property.` );
-			}
-		}
-
-		if ( !_.isFunction( mod.stop ) ) {
-			if ( _.isUndefined( mod.stop ) ) {
-				mod.stop = function() { return mod.obj; };
-			} else {
-				throw new Error( `Module '${ mod.name }' does not define a valid stop property.` );
-			}
-		}
 
 		return mod;
 

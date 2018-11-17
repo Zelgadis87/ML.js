@@ -20,6 +20,7 @@ describe( 'ModuleLoader', function() {
 	describe( '#register', function() {
 
 		it( 'should not allow modules with empty or null names', function() {
+			expect( () => moduleLoader.register() ).to.throw( Error );
 			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( undefined ) ).to.throw( Error );
 			expect( () => moduleLoader.register( '' ) ).to.throw( Error );
@@ -123,6 +124,13 @@ describe( 'ModuleLoader', function() {
 		it( 'should support array syntax without dependencies', function() {
 			expect( () => moduleLoader.register( [ _.noop ] ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
+		} );
+
+		it( 'should not support nulls', function() {
+			expect( () => moduleLoader.register( null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null, null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null, null, null ) ).to.throw( Error );
 		} );
 
 		it( 'should throw an exception if already started', function() {
