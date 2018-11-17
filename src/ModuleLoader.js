@@ -9,12 +9,19 @@ const _ = require( 'lodash' )
 
 Bluebird.config( { cancellation: true } );
 
-let functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
+const functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
 
-let isValidDependencyName = ( str ) => {
+const isValidDependencyName = ( str ) => {
 	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
 };
 
+const bind = function( fn, _this ) {
+	if ( fn === undefined )
+		return undefined;
+	if ( _.isFunction( fn ) )
+		return _.bind( fn, _this );
+	throw new Error( 'Function expected, got ' + typeof fn );
+};
 class ModuleLoader {
 
 	constructor() {
@@ -26,87 +33,70 @@ class ModuleLoader {
 
 	register( name, dependencies, start, stop ) {
 
-		if ( _.isArray( name ) ) {
-
-			if ( dependencies ) {
-				// Spread syntax with undefined name.
-				return this.register( { dependencies: name, start: dependencies, stop: start } );
-			} else {
-				// Array syntax definition
-				let [ deps, prelast, last ] = [ name.slice( 0, -2 ), ...name.slice( -2 ) ];
-
-				if ( last === undefined )
-					last = prelast;
-				if ( _.isFunction( last ) ) {
-					if ( _.isFunction( prelast ) ) {
-						// last two parameters are the start and stop functions, respectively
-						return this.register( { dependencies: deps, start: prelast, stop: last } );
-					} else {
-						// last parameter is the start function
-						return this.register( { dependencies: [ ...deps, prelast ], start: last } );
-					}
+		if ( arguments.length === 1 && _.isArray( name ) ) {
+			// Array syntax definition
+			let [ deps, prelast, last ] = [ name.slice( 0, -2 ), ...name.slice( -2 ) ];
+			if ( last === undefined )
+				last = prelast; // case where array has less than 3 elements.
+			if ( _.isFunction( last ) ) {
+				if ( _.isFunction( prelast ) ) {
+					// last two parameters are the start and stop functions, respectively
+					return this.register( { dependencies: deps, start: prelast, stop: last } );
 				} else {
-					throw new Error( 'Module does not define a valid start function in array syntax.' );
+					// last parameter is the start function
+					return this.register( { dependencies: [ ...deps, prelast ], start: last } );
 				}
-			}
-
-		} else {
-
-			let bind = function( fn, _this ) {
-				if ( fn === undefined )
-					return undefined;
-				if ( _.isFunction( fn ) )
-					return _.bind( fn, _this );
-				throw new Error( 'Function expected, got ' + typeof fn );
-			};
-
-			if ( arguments.length === 1 && _.isObjectLike( name ) ) {
-				// Object instance mode
-				return this._doRegister( {
-					name: name.name,
-					dependencies: name.dependencies,
-					start: bind( name.start, name ),
-					stop: bind( name.stop, name ),
-					obj: name
-				} );
-			} else if ( arguments.length === 2 && _.isObjectLike( dependencies ) ) {
-				// Object instance mode with standalone name
-				return this._doRegister( {
-					name: name,
-					dependencies: [],
-					start: bind( dependencies.start, dependencies ),
-					stop: bind( dependencies.stop, dependencies ),
-					obj: dependencies
-				} );
-			} else if ( arguments.length === 3 && _.isObjectLike( start ) ) {
-				// Object instance mode with name and dependencies
-				return this._doRegister( {
-					name: name,
-					dependencies: dependencies,
-					start: bind( start.start, start ),
-					stop: bind( start.stop, start ),
-					obj: start
-				} );
-			} else if ( arguments.length === 3 && _.isFunction( start ) ) {
-				// Spread syntax with no stop function
-				return this._doRegister( {
-					name: name,
-					dependencies: dependencies,
-					start: start
-				} );
-			} else if ( !isNullOrUndefined( name ) ) {
-				// Spread syntax
-				return this._doRegister( {
-					name: name,
-					dependencies: dependencies,
-					start: start,
-					stop: stop
-				} );
 			} else {
-				throw new Error( `Invalid registration arguments.` );
+				throw new Error( 'Module does not define a valid start function in array syntax.' );
 			}
+		} else if ( arguments.length === 1 && _.isObjectLike( name ) ) {
+			// Object instance mode
+			return this._doRegister( {
+				name: name.name,
+				dependencies: name.dependencies,
+				start: bind( name.start, name ),
+				stop: bind( name.stop, name ),
+				obj: name
+			} );
+		} else if ( ( arguments.length === 2 || arguments.length === 3 ) && _.isArray( name ) ) {
+			// Spread syntax with undefined name.
+			return this.register( { dependencies: name, start: dependencies, stop: start } );
+		} else if ( arguments.length === 2 && _.isObjectLike( dependencies ) ) {
+			// Object instance mode with standalone name
+			return this._doRegister( {
+				name: name,
+				dependencies: [],
+				start: bind( dependencies.start, dependencies ),
+				stop: bind( dependencies.stop, dependencies ),
+				obj: dependencies
+			} );
+		} else if ( arguments.length === 3 && _.isObjectLike( start ) ) {
+			// Object instance mode with name and dependencies
+			return this._doRegister( {
+				name: name,
+				dependencies: dependencies,
+				start: bind( start.start, start ),
+				stop: bind( start.stop, start ),
+				obj: start
+			} );
+		} else if ( arguments.length === 3 && _.isFunction( start ) ) {
+			// Spread syntax with no stop function
+			return this._doRegister( {
+				name: name,
+				dependencies: dependencies,
+				start: start
+			} );
+		} else if ( _.isString( name ) ) {
+			// Spread syntax with optional parameters
+			return this._doRegister( {
+				name: name,
+				dependencies: dependencies,
+				start: start,
+				stop: stop
+			} );
+		} else {
+			throw new Error( `Invalid registration arguments.` );
 		}
-
 	}
 
 	resolve( dep ) {
