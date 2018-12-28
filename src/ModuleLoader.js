@@ -277,12 +277,12 @@ class ModuleLoader {
 		this.modules[ mod.name ] = {
 			name: mod.name,
 			anonymous: mod.anonymous,
-			dependencies: mod.dependencies,
+			dependencyNames: mod.dependencies,
 			start: mod.start,
 			stop: mod.stop,
 			obj: mod.obj,
 			order: null,
-			dependenciesPromise: null,
+			dependencyPromises: null,
 			startPromise: null,
 			stopPromise: null
 		};
@@ -350,13 +350,18 @@ class ModuleLoader {
 
 		// Validate module dependencies.
 		let missingDependencies = _( this.modules )
-			.map( m => m.dependencies )
+			.map( m => m.dependencyNames )
 			.flatten()
 			.uniq()
 			.filter( dependencyName => !this.modules[ dependencyName ] )
 			.value();
 		if ( missingDependencies.length > 0 )
 			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) } ` );
+
+		// Convert dependency names to real dependencies
+		_.each( this.modules, m => {
+			m.dependencies = _.map( m.dependencyNames, name => this.modules[ name ] );
+		} );
 
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
@@ -366,8 +371,8 @@ class ModuleLoader {
 		// Assign order 0 to root modules and let them start loading.
 		_.each( rootModules, m => {
 			m.order = 0;
-			m.dependenciesPromise = [];
-			m.startPromise = Bluebird.resolve().then( () => m.start() ).then( ( x ) => this._ensureModuleReturnValue( m, x ) );
+			m.dependencyPromises = [];
+			m.startPromise = Bluebird.try( m.start.bind( m ) ).then( ( x ) => this._ensureModuleReturnValue( m, x ) );
 		} );
 
 		// Sort the modules
@@ -377,28 +382,17 @@ class ModuleLoader {
 			stale = true;
 			_.each( missingModules, m => {
 
-				let dependenciesResolved = true, lastDependency = 0, promises = [];
-				for ( let dependencyName of m.dependencies ) {
-					let dependency = this.modules[ dependencyName ];
-					if ( dependency.order === null ) {
-						dependenciesResolved = false;
-						break;
-					} else {
-						lastDependency = Math.max( lastDependency, dependency.order );
-						promises.push( dependency.startPromise );
-					}
-				}
-
+				let dependenciesResolved = _.every( m.dependencies, dep => dep.order !== null && dep.order >= 0 );
 				if ( dependenciesResolved ) {
 					stale = false;
-					m.order = lastDependency + 1;
-					m.dependenciesPromise = promises;
-					m.startPromise = Bluebird.all( m.dependenciesPromise )
+					// m.dependencies.forEach( dep => dep.required() );
+					m.order = _.maxBy( m.dependencies, dep => dep.order ).order + 1;
+					m.dependencyPromises = _.map( m.dependencies, 'startPromise' );
+					m.startPromise = Bluebird.all( m.dependencyPromises )
 						.then( args => m.start.apply( m, args ) )
 						.then( x => this._ensureModuleReturnValue( m, x ) );
 				}
-
-
+				// console.debug( 'dependency-resolver', m.name, _.map( m.dependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
 			} );
 
 			missingModules = _.filter( this.modules, m => m.order === null );
@@ -419,8 +413,7 @@ class ModuleLoader {
 			.reduce( ( partialPromise, m ) => {
 				if ( m.startPromise.isFulfilled() ) {
 					// If the module was started, stop it.
-					let promises = [].concat( m.startPromise ).concat( m.dependenciesPromise );
-					return partialPromise.then( () => Bluebird.resolve( promises ).spread( m.stop ) );
+					return partialPromise.then( () => Bluebird.resolve( [ m.startPromise, ...m.dependencyPromises ] ).spread( m.stop ) );
 				} else {
 					// If the module was still waiting for dependencies, cancel it and ignore it.
 					m.startPromise.cancel();
