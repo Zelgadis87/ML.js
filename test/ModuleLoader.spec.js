@@ -244,6 +244,38 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
+		it( 'should load module groups in sequence', function() {
+
+			let maxGroups = 5,
+				groups = Array( maxGroups ).fill( false ),
+				status = i => `[ ${ groups.map( ( loaded, idx ) => ( idx === i ) ? 'x' : ( loaded ? '✓' : '-' ) ).join( ' ' ) } ]`,
+				start = ( name, i ) => {
+					if ( i > 0 )
+						expect( groups[ i - 1 ], `Module '${ name }' should be loaded after dependencies of group ${ i - 1 } have been already loaded: ${ status( i ) }` ).to.be.true;
+					if ( i < maxGroups - 1 )
+						expect( groups[ i + 1 ], `Module '${ name }' should have been loaded before dependencies of group ${ i + 1 } started ${ status( i ) }` ).to.be.false;
+					groups[ i ] = true;
+					return Bluebird.delay( 100 ).return( name );
+				};
+
+			moduleLoader.register( { name: 'd', dependencies: [ 'a1', 'b1', 'c' ], start: () => start( 'd', 4 ) } );
+
+			moduleLoader.register( { name: 'b1', dependencies: [ 'b' ], start: () => start( 'b1', 2 ) } );
+			moduleLoader.register( { name: 'b2', dependencies: [ 'a', 'b' ], start: () => start( 'b2', 2 ) } );
+
+			moduleLoader.register( { name: 'c', dependencies: [ 'b2' ], start: () => start( 'c', 3 ) } );
+			moduleLoader.register( { name: 'c1', dependencies: [ 'a1', 'b1' ], start: () => start( 'c1', 3 ) } );
+			moduleLoader.register( { name: 'c2', dependencies: [ 'a2', 'b2' ], start: () => start( 'c2', 3 ) } );
+
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => start( 'a', 0 ) } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: () => start( 'b', 1 ) } );
+			moduleLoader.register( { name: 'a1', dependencies: [ 'a' ], start: () => start( 'a1', 1 ) } );
+			moduleLoader.register( { name: 'a2', dependencies: [ 'a' ], start: () => start( 'a2', 1 ) } );
+
+			return moduleLoader.start();
+
+		} );
+
 		it( 'should eventually fullfill a Promise when some modules are registered', function() {
 			moduleLoader.register( { name: 'a', dependencies: [] } );
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ] } );
