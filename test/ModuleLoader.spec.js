@@ -20,6 +20,7 @@ describe( 'ModuleLoader', function() {
 	describe( '#register', function() {
 
 		it( 'should not allow modules with empty or null names', function() {
+			expect( () => moduleLoader.register() ).to.throw( Error );
 			expect( () => moduleLoader.register( null ) ).to.throw( Error );
 			expect( () => moduleLoader.register( undefined ) ).to.throw( Error );
 			expect( () => moduleLoader.register( '' ) ).to.throw( Error );
@@ -125,6 +126,13 @@ describe( 'ModuleLoader', function() {
 			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
 		} );
 
+		it( 'should not support nulls', function() {
+			expect( () => moduleLoader.register( null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null, null ) ).to.throw( Error );
+			expect( () => moduleLoader.register( null, null, null, null ) ).to.throw( Error );
+		} );
+
 		it( 'should throw an exception if already started', function() {
 			expect( () => moduleLoader.register( 'a' ) ).to.not.throw( Error );
 			expect( () => moduleLoader.register( { name: 'b', dependencies: 'a' } ) ).to.not.throw( Error );
@@ -204,15 +212,15 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
-		it( 'should throw an error if a root module returns undefined', function() {
+		it( 'should eventually throw an error if a root module returns undefined', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: _.noop } );
-			return expect( moduleLoader.start() ).to.be.rejected;
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 		} );
 
-		it( 'should throw an error if a dependant module returns undefined', function() {
+		it( 'should eventually throw an error if a dependant module returns undefined', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: () => 1 } );
 			moduleLoader.register( { name: 'b', dependencies: 'a', start: _.noop } );
-			return expect( moduleLoader.start() ).to.be.rejected;
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 		} );
 
 		it( 'should load modules in parallel when no dependency is shared', function() {
@@ -232,6 +240,38 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: () => { expect( counter ).to.be.eql( 1 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'c', dependencies: [ 'b' ], start: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
 			moduleLoader.register( { name: 'd', dependencies: [ 'b' ], start: () => { expect( counter ).to.be.eql( 2 ); return delayedCount(); } } );
+			return moduleLoader.start();
+
+		} );
+
+		it( 'should load module groups in sequence', function() {
+
+			let maxGroups = 5,
+				groups = Array( maxGroups ).fill( false ),
+				status = i => `[ ${ groups.map( ( loaded, idx ) => ( idx === i ) ? 'x' : ( loaded ? '✓' : '-' ) ).join( ' ' ) } ]`,
+				start = ( name, i ) => {
+					if ( i > 0 )
+						expect( groups[ i - 1 ], `Module '${ name }' should be loaded after dependencies of group ${ i - 1 } have been already loaded: ${ status( i ) }` ).to.be.true;
+					if ( i < maxGroups - 1 )
+						expect( groups[ i + 1 ], `Module '${ name }' should have been loaded before dependencies of group ${ i + 1 } started ${ status( i ) }` ).to.be.false;
+					groups[ i ] = true;
+					return Bluebird.delay( 100 ).return( name );
+				};
+
+			moduleLoader.register( { name: 'd', dependencies: [ 'a1', 'b1', 'c' ], start: () => start( 'd', 4 ) } );
+
+			moduleLoader.register( { name: 'b1', dependencies: [ 'b' ], start: () => start( 'b1', 2 ) } );
+			moduleLoader.register( { name: 'b2', dependencies: [ 'a', 'b' ], start: () => start( 'b2', 2 ) } );
+
+			moduleLoader.register( { name: 'c', dependencies: [ 'b2' ], start: () => start( 'c', 3 ) } );
+			moduleLoader.register( { name: 'c1', dependencies: [ 'a1', 'b1' ], start: () => start( 'c1', 3 ) } );
+			moduleLoader.register( { name: 'c2', dependencies: [ 'a2', 'b2' ], start: () => start( 'c2', 3 ) } );
+
+			moduleLoader.register( { name: 'a', dependencies: [], start: () => start( 'a', 0 ) } );
+			moduleLoader.register( { name: 'b', dependencies: [ 'a' ], start: () => start( 'b', 1 ) } );
+			moduleLoader.register( { name: 'a1', dependencies: [ 'a' ], start: () => start( 'a1', 1 ) } );
+			moduleLoader.register( { name: 'a2', dependencies: [ 'a' ], start: () => start( 'a2', 1 ) } );
+
 			return moduleLoader.start();
 
 		} );

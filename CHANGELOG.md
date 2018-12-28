@@ -1,4 +1,9 @@
 
+## v1.1.4 (2018/12/28 18:03)
+- Refactor: Changed how the register method works internally
+- Refactor: Optimized internal module dependencies storage
+- Fix: Can now be imported as ES6 module
+
 ## v1.1.3 (2018/11/10 12:39)
 - Fix: Import as ES6 module now works correctly (2nd attempt)
 
