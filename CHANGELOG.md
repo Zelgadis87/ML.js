@@ -1,4 +1,7 @@
 
+## v1.1.5 (2019/09/16 13:12)
+- Updated dependencies
+
 ## v1.1.4 (2018/12/28 18:03)
 - Refactor: Changed how the register method works internally
 - Refactor: Optimized internal module dependencies storage
