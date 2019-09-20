@@ -8,8 +8,6 @@ const a = 1 // eslint-disable-line no-unused-vars
 	, path = require( 'path' )
 	;
 
-Bluebird.config( { cancellation: true } );
-
 const functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
 
 const isValidDependencyName = ( str ) => {
