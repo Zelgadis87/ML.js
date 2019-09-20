@@ -556,19 +556,24 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
-		it( 'should prevent pending modules from starting up', function() {
+		it( 'should prevent modules from starting up when stopping immediately', function() {
 
-			moduleLoader.register( 'a', '' );
+			let run = false;
+			moduleLoader.register( {
+				name: 'a',
+				dependencies: [],
+				start: () => run = true
+			} );
 			moduleLoader.register( {
 				name: 'b',
 				dependencies: 'a',
-				start: () => Bluebird.delay( 1500 )
+				start: () => Bluebird.delay( 500 )
 			} );
 			moduleLoader.register( {
-				name: 'c',
+				name: 'xxx',
 				dependencies: 'b',
 				start: () => {
-					return Bluebird.reject( new Error( 'Module c should not have been started' ) );
+					return Bluebird.reject( new Error( 'Module xxx should not have been started' ) );
 				}
 			} );
 
@@ -576,6 +581,68 @@ describe( 'ModuleLoader', function() {
 			let stopPromise = moduleLoader.stop();
 
 			return Bluebird.all( [ startPromise.reflect(), stopPromise.reflect() ] ).spread( ( startIntrospection, stopIntrospection ) => {
+				expect( run, 'No module should start' ).to.be.false;
+				expect( startIntrospection.isRejected(), 'Should cancel startup procedure' ).to.be.false;
+				expect( stopIntrospection.isFulfilled() ).to.be.true;
+			} );
+
+		} );
+
+		it( 'should finish current module initialization but not start any more modules', function() {
+
+			let run = false;
+			moduleLoader.register( {
+				name: 'a',
+				dependencies: [],
+				start: () => Bluebird.delay( 100 ).then( () => run = true )
+			} );
+			moduleLoader.register( {
+				name: 'xxx',
+				dependencies: 'a',
+				start: () => {
+					return Bluebird.reject( new Error( 'Module xxx should not have been started' ) );
+				}
+			} );
+
+			let startPromise = moduleLoader.start();
+			let stopPromise = Bluebird.delay( 25 ).then( () => moduleLoader.stop() );
+
+			return Bluebird.all( [ startPromise.reflect(), stopPromise.reflect() ] ).spread( ( startIntrospection, stopIntrospection ) => {
+				expect( run, 'No dependency modules should have already been started' ).to.be.true;
+				expect( startIntrospection.isRejected(), 'Should have canceled startup procedure' ).to.be.false;
+				expect( stopIntrospection.isFulfilled() ).to.be.true;
+			} );
+
+		} );
+
+		it( 'should gracefully stop  modules started while stopping', function() {
+
+			let stoppedA = false, stoppedB = false;
+			moduleLoader.register( {
+				name: 'a',
+				dependencies: [],
+				stop: () => Bluebird.delay( 50 ).then( () => stoppedA = true )
+			} );
+			moduleLoader.register( {
+				name: 'b',
+				dependencies: 'a',
+				start: () => Bluebird.delay( 200 ).return( {} ),
+				stop: () => Bluebird.delay( 50 ).then( () => stoppedB = true )
+			} );
+			moduleLoader.register( {
+				name: 'xxx',
+				dependencies: 'b',
+				start: () => {
+					return Bluebird.reject( new Error( 'Module xxx should not have been started' ) );
+				}
+			} );
+
+			let startPromise = moduleLoader.start();
+			let stopPromise = Bluebird.delay( 100 ).then( () => moduleLoader.stop() );
+
+			return Bluebird.all( [ startPromise.reflect(), stopPromise.reflect() ] ).spread( ( startIntrospection, stopIntrospection ) => {
+				expect( stoppedA, 'Should stop module A which was already started' ).to.be.true,
+				expect( stoppedB, 'Should stop module B which was in the process of being started during the stop event' ).to.be.true,
 				expect( startIntrospection.isRejected(), 'Should cancel startup procedure' ).to.be.false;
 				expect( stopIntrospection.isFulfilled() ).to.be.true;
 			} );

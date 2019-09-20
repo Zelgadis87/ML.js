@@ -22,13 +22,42 @@ const bind = function( fn, _this ) {
 		return _.bind( fn, _this );
 	throw new Error( 'Function expected, got ' + typeof fn );
 };
+
+function defer() {
+	let resolve, reject;
+	let promise = new Bluebird( ( _resolve, _reject ) => {
+		resolve = _resolve;
+		reject = _reject;
+	} );
+	return {
+		resolve: resolve,
+		reject: reject,
+		promise: promise
+	};
+}
+
+function createTask( fn ) {
+	let deferred = defer();
+	let task = deferred.promise.then( fn ? fn : _.noop );
+	deferred.promise.task = task;
+	task.execute = () => {
+		if ( task.executed )
+			throw new Error( 'Task already executed' );
+		task.executed = true;
+		deferred.resolve();
+		return task;
+	};
+	task.executed = false;
+	return task;
+}
+
 class ModuleLoader {
 
 	constructor() {
 		this.length = 0;
 		this.modules = {};
-		this.startPromise = null;
-		this.stopPromise = null;
+		this.globalStartPromise = null;
+		this.globalStopPromise = null;
 	}
 
 	register( ...args ) {
@@ -54,7 +83,7 @@ class ModuleLoader {
 				return Bluebird.resolve( undefined );
 			if ( !this.started )
 				this.start();
-			return this.modules[ dep ].startPromise;
+			return this.modules[ dep ].startTask;
 		} else {
 			throw new Error( `Invalid dependency name, string or array expected, got: ${ typeof dep }` );
 		}
@@ -121,26 +150,26 @@ class ModuleLoader {
 
 	start() {
 		if ( !this.started )
-			this.startPromise = Bluebird.try( this._doStart.bind( this ) );
-		return this.startPromise;
+			this.globalStartPromise = Bluebird.try( this._doStart.bind( this ) );
+		return this.globalStartPromise;
 	}
 
 	stop() {
 		if ( !this.started )
 			throw new Error( 'Cannot stop, loader not even started' );
 		if ( !this.stopped )
-			this.stopPromise = Bluebird.try( this._doStop.bind( this ) );
-		return this.stopPromise;
+			this.globalStopPromise = Bluebird.try( this._doStop.bind( this ) );
+		return this.globalStopPromise;
 	}
 
 	// #region current loader state
 
 	get started() {
-		return this.startPromise !== null;
+		return this.globalStartPromise !== null;
 	}
 
 	get stopped() {
-		return this.stopPromise !== null;
+		return this.globalStopPromise !== null;
 	}
 
 	// #endregion
@@ -159,7 +188,7 @@ class ModuleLoader {
 	_register1( a ) {
 		if ( _.isArray( a ) ) {
 			// Array syntax definition
-			let [ deps, prelast, last ] = [ a.slice( 0, -2 ), a.slice( -2, a.length - 1 )[0], a.slice( -1, a.length )[0] ];
+			let [ deps, prelast, last ] = [ a.slice( 0, -2 ), a.slice( -2, a.length - 1 )[ 0 ], a.slice( -1, a.length )[ 0 ] ];
 			if ( this._isArgValidStart( prelast ) && this._isArgValidStop( last ) ) {
 				// last two parameters are the start and stop functions, respectively
 				return this._doRegister( { dependencies: deps, start: prelast, stop: last } );
@@ -283,8 +312,9 @@ class ModuleLoader {
 			obj: mod.obj,
 			order: null,
 			dependencyPromises: null,
-			startPromise: null,
-			stopPromise: null
+			startTask: null,
+			stopTask: null,
+			cancelled: false
 		};
 
 		this.length++;
@@ -372,7 +402,8 @@ class ModuleLoader {
 		_.each( rootModules, m => {
 			m.order = 0;
 			m.dependencyPromises = [];
-			m.startPromise = Bluebird.try( m.start.bind( m ) ).then( ( x ) => this._ensureModuleReturnValue( m, x ) );
+			m.startTask = this._createStartTask( m );
+			m.stopTask = this._createStopTask( m );
 		} );
 
 		// Sort the modules
@@ -387,10 +418,9 @@ class ModuleLoader {
 					stale = false;
 					// m.dependencies.forEach( dep => dep.required() );
 					m.order = _.maxBy( m.dependencies, dep => dep.order ).order + 1;
-					m.dependencyPromises = _.map( m.dependencies, 'startPromise' );
-					m.startPromise = Bluebird.all( m.dependencyPromises )
-						.then( args => m.start.apply( m, args ) )
-						.then( x => this._ensureModuleReturnValue( m, x ) );
+					m.dependencyPromises = _.map( m.dependencies, 'startTask' );
+					m.startTask = this._createStartTask( m );
+					m.stopTask = this._createStopTask( m );
 				}
 				// console.debug( 'dependency-resolver', m.name, _.map( m.dependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
 			} );
@@ -402,25 +432,75 @@ class ModuleLoader {
 		if ( stale )
 			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ _.map( missingModules, m => m.name ).join( ', ' ) } !` );
 
-		return Bluebird.all( _.map( this.modules, m => m.startPromise ) );
+		return Bluebird.all( _.map( this.modules, m => {
+			m.startTask.execute();
+			return m.startTask;
+		} ) );
 	}
 
 	_doStop() {
 
-		return _( this.modules )
+		let deferred = defer();
+		let combinedPromise = _( this.modules )
 			.sortBy( 'order' )
 			.reverse()
 			.reduce( ( partialPromise, m ) => {
-				if ( m.startPromise.isFulfilled() ) {
+				if ( m.startTask.isFulfilled() ) {
 					// If the module was started, stop it.
-					return partialPromise.then( () => Bluebird.resolve( [ m.startPromise, ...m.dependencyPromises ] ).spread( m.stop ) );
+					// console.info( 'Stopping already started module ' + m.name );
+					return partialPromise.then( () => m.stopTask.execute() );
+				} else if ( m.starting ) {
+					// If the module was about to start, finish initialization and then stop it.
+					// console.info( 'Stopping module ' + m.name + ' as soon as inizialization completed', m.startTask.reflect().value, m.dependencies.map( d => d.name ) );
+					return partialPromise.then( () => m.stopTask.execute() );
 				} else {
 					// If the module was still waiting for dependencies, cancel it and ignore it.
-					m.startPromise.cancel();
+					// console.info( 'Canceling start promise for ' + m.name );
+					m.cancelled = true;
 					return partialPromise;
 				}
-			}, Bluebird.resolve() );
+			}, deferred.promise );
+		deferred.resolve();
+		return combinedPromise;
 
+	}
+
+	_createStartTask( m ) {
+		return createTask( () => Bluebird.resolve()
+			// .tap( ___ => console.info( 'Waiting for dependencies', m.name, _.map( m.dependencies, 'name' ) ) )
+			.then( () => Bluebird.all( m.dependencyPromises ) )
+			// .tap( ___ => console.info( 'Dependencies ready', m.name ) )
+			.then( deps => {
+				if ( m.cancelled )
+					return undefined;
+				return Bluebird.resolve( deps )
+					// .tap( ___ => console.info( 'Starting', m.name ) )
+					.tap( ___ => m.starting = true )
+					// .then( args => console.info( args ) )
+					.then( args => m.start.apply( m, args ) )
+					.then( x => this._ensureModuleReturnValue( m, x ) )
+					.tap( ___ => m.starting = false )
+					.tap( ___ => m.started = true )
+					// .tap( x => console.info( 'Started', m.name, x ) )
+				;
+			} )
+			// .catch( err => console.error( 'Failed to start task:', err ) )
+		);
+	}
+
+	_createStopTask( m ) {
+		return createTask( () => Bluebird.resolve()
+			.then( () => m.startTask )
+			// .tap( ___ => console.info( 'Stopping', m.name ) )
+			.tap( ___ => m.stopping = true )
+			// .tap( ___ => console.info( m.name, 'Waiting on modules: ', [ m, ...m.dependencies ].map( x => x.name ), [ m, ...m.dependencies ].map( x => x.startTask.isFulfilled() ) ) )
+			.then( ___ => Bluebird.all( [ m.startTask, ...m.dependencyPromises ] ) )
+			.then( args => m.stop.apply( m, args ) )
+			.tap( ___ => m.stopping = false )
+			.tap( ___ => m.stopped = true )
+			// .tap( ___ => console.info( 'Stopped', m.name ) )
+			// .catch( err => console.error( 'Failed to stop task:', err ) )
+		);
 	}
 
 	_generateAnonymousModuleName() {
