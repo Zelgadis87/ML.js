@@ -41,11 +41,11 @@ function createTask( fn ) {
 	let deferred = defer();
 	let task = deferred.promise.then( fn ? fn : lodash.noop );
 	deferred.promise.task = task;
-	task.execute = () => {
+	task.execute = ( ...args ) => {
 		if ( task.executed )
 			throw new Error( 'Task already executed' );
 		task.executed = true;
-		deferred.resolve();
+		deferred.resolve( ...args );
 		return task;
 	};
 	task.executed = false;
@@ -131,20 +131,25 @@ class Module {
 	}
 
 	_createStopTask() {
-		return createTask( () => Bluebird.resolve()
-			// .tap( _ => console.info( 'Stopping', this.name, this.started, this.starting ) )
-			.then( _ => {
-				if ( !this.started && !this.starting )
-					return undefined;
-				// console.info( this.name, 'Waiting on modules: ', [ this, ...this.resolvedDependencies ].map( x => x.name ), [ this, ...this.resolvedDependencies ].map( x => x.startTask.isFulfilled() ) );
-				return Bluebird.resolve( [ this.startTask, ...lodash.map( this.resolvedDependencies, d => d.startTask ) ] )
-					.all()
-					.then( values => this.stop( ...values ) );
-			} )
-			.tap( _ => this.stopped = true )
-			// .tap( _ => console.info( 'Stopped', this.name ) )
-			// .catch( err => console.error( 'Failed to stop task:', err ) )
-		);
+		return createTask( descendant => {
+			// console.info( 'Stopping', this.name, this.order, lodash.map( descendant.modules, 'name' ) );
+			this.stopping = true;
+			return Bluebird.resolve( descendant.promise )
+				// .tap( _ => console.info( 'Beginning stop procedure', this.name, this.order, this.started, this.starting ) )
+				.then( _ => {
+					if ( !this.started && !this.starting )
+						return undefined;
+					// console.info( this.name, 'Waiting on modules: ', [ this, ...this.resolvedDependencies ].map( x => x.name ), [ this, ...this.resolvedDependencies ].map( x => x.startTask.isFulfilled() ) );
+					return Bluebird.resolve( [ this.startTask, ...lodash.map( this.resolvedDependencies, d => d.startTask ) ] )
+						.all()
+						.then( values => this.stop( ...values ) );
+				} )
+				.tap( _ => this.stopped = true )
+				.tap( _ => this.stopping = false )
+				// .tap( _ => console.info( 'Stopped', this.name ) )
+				// .catch( err => console.error( 'Failed to stop task:', err ) )
+			;
+		} );
 	}
 
 	_ensureValidReturnValue( x ) {
@@ -511,15 +516,15 @@ class ModuleLoader {
 	_doStop() {
 
 		let deferred = defer();
-		let combinedPromise = lodash( this.modules )
-			.sortBy( 'order' )
-			.reverse()
-			.reduce( ( partialPromise, m ) => {
-				m.stopping = true;
-				return partialPromise.then( () => m.stopTask.execute() ).finally( _ => m.stopping = false );
-			}, deferred.promise );
+		let previousTier = { modules: [], promise: deferred.promise };
+
+		for ( let o = this.maxOrder; o >= 0; o-- ) {
+			let tierModules = lodash.filter( this.modules, m => m.order === o );
+			let tierPromises = lodash.map( tierModules, m => m.stopTask.execute( previousTier ) );
+			previousTier = { modules: tierModules, promise: previousTier.promise.then( () => Bluebird.all( tierPromises ) ) };
+		}
 		deferred.resolve();
-		return combinedPromise;
+		return previousTier.promise;
 
 	}
 
