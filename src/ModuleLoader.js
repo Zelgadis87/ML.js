@@ -10,6 +10,7 @@ const a = 1 // eslint-disable-line no-unused-vars
 	, path = require( 'path' )
 	;
 
+/* istanbul ignore next */
 const functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
 
 const isValidDependencyName = ( str ) => {
