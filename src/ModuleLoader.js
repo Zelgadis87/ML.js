@@ -89,28 +89,23 @@ class Module {
 		this._resolvedDependencies = value;
 	}
 
+	/**
+	 * Returns this module order.\n
+	 * A module order is defined as the priority in which a module should be loaded, relative to other modules.\n
+	 * Order is:
+	 * - null if order has not been calculated yet
+	 * - 0 if the module has no dependencies
+	 * - otherwise it is the max order of the module dependencies plus one.
+	 * @return this module order, according to the above rules
+	 */
 	get order() {
 		return this._order;
 	}
 
 	set order( value ) {
 		if ( this._order !== null )
-			throw new Error( 'Module already had an order' );
+			throw new Error( 'Module already has an order' );
 		this._order = value;
-	}
-
-	/**
-	 * Calculate this module order.\n
-	 * A module order is defined as the priority in which a module should be loaded, relative to other modules.\n
-	 * Order is 0 if the module has no dependencies, otherwise it is the max order of the module dependencies plus one.
-	 * @return this module calculated order according to the definition above, or -1 if order could not be calculated.
-	 */
-	calculateOrder() {
-		if ( !this.dependencies.length )
-			return 0;
-		if ( lodash.some( this.resolvedDependencies, dp => dp.order === null ) )
-			return -1;
-		return lodash( this.resolvedDependencies ).map( 'order' ).max() + 1;
 	}
 
 	_createStartTask() {
@@ -164,6 +159,7 @@ class ModuleLoader {
 	constructor() {
 		this.length = 0;
 		this.modules = {};
+		this.maxOrder = 0;
 		this.globalStartPromise = null;
 		this.globalStopPromise = null;
 	}
@@ -488,27 +484,23 @@ class ModuleLoader {
 		} );
 
 		// Sort the modules
-		let stale = false, missingModules = lodash.values( this.modules );
-		while ( !stale && missingModules.length > 0 ) {
+		let missingModules = lodash.values( this.modules ), curOrder = 0;
+		while ( missingModules.length > 0 ) {
 
-			stale = true;
-			lodash.each( missingModules, m => {
+			let nextModules = lodash.filter( missingModules, m => lodash.every( m.resolvedDependencies, dep => dep.order !== null ) );
+			if ( !nextModules.length )
+				throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ lodash.map( missingModules, m => m.name ).join( ', ' ) } !` );
 
-				let calculatedOrder = m.calculateOrder();
-				if ( calculatedOrder >= 0 ) {
-					stale = false;
-					// m.resolvedDependencies.forEach( dep => dep.required() );
-					m.order = calculatedOrder;
-				}
-				// console.debug( 'dependency-resolver', m.name, _.map( m.resolvedDependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
+			lodash.each( nextModules, m => {
+				m.order = curOrder;
 			} );
 
 			missingModules = lodash.filter( missingModules, m => m.order === null );
+			curOrder++;
 
 		}
 
-		if ( stale )
-			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ lodash.map( missingModules, m => m.name ).join( ', ' ) } !` );
+		this.maxOrder = curOrder - 1;
 
 		return Bluebird.all( lodash.map( this.modules, m => {
 			m.startTask.execute();
