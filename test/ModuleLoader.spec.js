@@ -534,26 +534,26 @@ describe( 'ModuleLoader', function() {
 		it( 'should stop modules in reverse order', function() {
 
 			let x = 0;
-			moduleLoader.register( {
+			moduleLoader.register( { // First module
 				name: 'a',
 				dependencies: [],
 				start: () => x++,
 				stop: () => { expect( x ).to.be.eql( 1 ); x--; }
 			} );
-			moduleLoader.register( {
+			moduleLoader.register( { // Third module
 				name: 'c',
 				dependencies: [ 'a', 'b' ],
 				start: () => x++,
 				stop: () => { expect( x ).to.be.eql( 3 ); x--; }
 			} );
-			moduleLoader.register( {
+			moduleLoader.register( { // Second module
 				name: 'b',
 				dependencies: [ 'a' ],
 				start: () => x++,
 				stop: () => { expect( x ).to.be.eql( 2 ); x--; }
 			} );
 
-			return moduleLoader.start().then( () => moduleLoader.stop() );
+			return moduleLoader.start().then( () => moduleLoader.stop() ).then( () => expect( x ).to.be.eql( 0 ) );
 
 		} );
 
@@ -616,7 +616,7 @@ describe( 'ModuleLoader', function() {
 
 		} );
 
-		it( 'should gracefully stop  modules started while stopping', function() {
+		it( 'should gracefully stop modules started while stopping', function() {
 
 			let stoppedA = false, stoppedB = false;
 			moduleLoader.register( {
