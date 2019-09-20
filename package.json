@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "lint": "npm run lint:eslint",
-    "test": "npm run lint:eslint-strict && npm run coverage",
+    "test": "npm run lint:eslint:strict && npm run coverage",
     "versionate": "npx npm-versionator",
+    "lint:fix": "npm run lint:eslint -- --fix",
     "lint:eslint": "npx eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
-    "lint:eslint-strict": "npm run lint:eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error",
+    "lint:eslint:strict": "npm run lint:eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error",
     "test:run": "mocha ./test/**/*.spec.js",
+    "test:bail": "npm run test:run -- --bail",
+    "test:watch": "npm run test:run -- --watch",
+    "test:watch:bail": "npm run test:run -- --watch --bail",
     "coverage": "npx nyc --all --include=*.js --include=src/**/*.js --reporter=lcov --reporter=text mocha ./test/**/*.spec.js",
-    "coverage:html": "npx nyc --all --include=*.js --include=src/**/*.js --reporter=html npm run test:run && start coverage/index.html",
-    "test:watch": "npm run test:run -- --watch"
+    "coverage:html": "npx nyc --all --include=*.js --include=src/**/*.js --reporter=html npm run test:run && start coverage/index.html"
   },
   "author": "Zelgadis87",
   "license": "ISC",
