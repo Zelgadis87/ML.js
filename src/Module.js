@@ -1,25 +1,10 @@
 
 const a = 1 // eslint-disable-line no-unused-vars
 	, Bluebird = require( 'bluebird' )
-	, defer = require( './defer' )
+	, createTask = require( './create-task' )
 	, isNullOrUndefined = x => x === null || x === undefined
 	, lodash = require( 'lodash' )
 	;
-
-function createTask( fn ) {
-	let deferred = defer();
-	let task = deferred.promise.then( fn ? fn : lodash.noop );
-	deferred.promise.task = task;
-	task.execute = ( ...args ) => {
-		if ( task.executed )
-			throw new Error( 'Task already executed' );
-		task.executed = true;
-		deferred.resolve( ...args );
-		return task;
-	};
-	task.executed = false;
-	return task;
-}
 
 class Module {
 
