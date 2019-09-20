@@ -246,6 +246,10 @@ describe( 'ModuleLoader', function() {
 
 		it( 'should load module groups in sequence', function() {
 
+			// TODO: Fasten this.
+			this.slow( 2000 );
+			this.timeout( 5000 );
+
 			let maxGroups = 5,
 				groups = Array( maxGroups ).fill( false ),
 				status = i => `[ ${ groups.map( ( loaded, idx ) => ( idx === i ) ? 'x' : ( loaded ? '✓' : '-' ) ).join( ' ' ) } ]`,
@@ -606,7 +610,7 @@ describe( 'ModuleLoader', function() {
 
 			return moduleLoader.start().then( () => {
 				expect( moduleLoader.stop() ).to.be.eql( moduleLoader.stop() );
-				moduleLoader.stop().then( () => expect( x ).to.be.eql( 1 ) );
+				return moduleLoader.stop().then( () => expect( x ).to.be.eql( 1 ) );
 			} );
 
 		} );
@@ -683,7 +687,9 @@ describe( 'ModuleLoader', function() {
 
 			moduleLoader.register( 'a', a );
 			moduleLoader.register( 'b', [ 'a' ], b );
-			return moduleLoader.start().then( () => moduleLoader.stop() );
+
+			let p = moduleLoader.start().then( () => moduleLoader.stop() );
+			return expect( p ).to.eventually.be.fulfilled;
 		} );
 
 	} );
