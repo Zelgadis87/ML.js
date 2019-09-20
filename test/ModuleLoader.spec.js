@@ -1,10 +1,11 @@
 
 /* eslint-env mocha */
 
-const chai = require( 'chai' )
-	, expect = chai.use( require( 'chai-as-promised' ) ).expect
-	, _ = require( 'lodash' )
+const a = 1 // eslint-disable-line no-unused-vars
 	, Bluebird = require( 'bluebird' )
+	, chai = require( 'chai' )
+	, expect = chai.use( require( 'chai-as-promised' ) ).expect
+	, lodash = require( 'lodash' )
 	;
 
 describe( 'ModuleLoader', function() {
@@ -63,25 +64,25 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should allow a module with a valid object definition', function() {
-			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module with a valid spread definition', function() {
 			expect( () => moduleLoader.register( 'a', [] ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'b', [], _.noop ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'c', [], _.noop, _.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', [], lodash.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', [], lodash.noop, lodash.noop ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module with a name and an object definition', function() {
-			expect( () => moduleLoader.register( 'a', { start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'b', { start: _.noop } ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'c', { stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'a', { start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', { start: lodash.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', { stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module with a namem, dependencies and an object definition', function() {
-			expect( () => moduleLoader.register( 'a', [], { start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'b', [ 'a' ], { start: _.noop } ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( 'c', [ 'a' ], { stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'a', [], { start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'b', [ 'a' ], { start: lodash.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( 'c', [ 'a' ], { stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow a module definition with an empty string as dependency', function() {
@@ -89,23 +90,23 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should allow a module with a string dependency', function() {
-			expect( () => moduleLoader.register( { name: 'a', dependencies: 'b', start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'a', dependencies: 'b', start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should allow modules registration out of order', function() {
-			expect( () => moduleLoader.register( { name: 'b', dependencies: [], start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( { name: 'a', dependencies: 'b', start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'b', dependencies: [], start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { name: 'a', dependencies: 'b', start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should throw an error is start or stop are not functions', function() {
-			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: '', stop: _.noop } ) ).to.throw( Error );
-			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: _.noop, stop: '' } ) ).to.throw( Error );
+			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: '', stop: lodash.noop } ) ).to.throw( Error );
+			expect( () => moduleLoader.register( { name: 'a', dependencies: [], start: lodash.noop, stop: '' } ) ).to.throw( Error );
 		} );
 
 		it( 'should support registering anonymous modules', function() {
-			expect( () => moduleLoader.register( [], _.noop ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( [], _.noop, _.noop ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( { dependencies: [], start: _.noop, stop: _.noop } ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [], lodash.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [], lodash.noop, lodash.noop ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( { dependencies: [], start: lodash.noop, stop: lodash.noop } ) ).to.not.throw( Error );
 		} );
 
 		it( 'should not support array syntax without a start function', function() {
@@ -114,16 +115,16 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should support array syntax with only a start function', function() {
-			expect( () => moduleLoader.register( [ 'a', 'b', _.noop ] ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [ 'a', 'b', lodash.noop ] ) ).to.not.throw( Error );
 		} );
 
 		it( 'should support array syntax with start and stop functions', function() {
-			expect( () => moduleLoader.register( [ 'a', 'b', _.noop, _.noop ] ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [ 'a', 'b', lodash.noop, lodash.noop ] ) ).to.not.throw( Error );
 		} );
 
 		it( 'should support array syntax without dependencies', function() {
-			expect( () => moduleLoader.register( [ _.noop ] ) ).to.not.throw( Error );
-			expect( () => moduleLoader.register( [ _.noop, _.noop ] ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [ lodash.noop ] ) ).to.not.throw( Error );
+			expect( () => moduleLoader.register( [ lodash.noop, lodash.noop ] ) ).to.not.throw( Error );
 		} );
 
 		it( 'should not support nulls', function() {
@@ -213,13 +214,13 @@ describe( 'ModuleLoader', function() {
 		} );
 
 		it( 'should eventually throw an error if a root module returns undefined', function() {
-			moduleLoader.register( { name: 'a', dependencies: [], start: _.noop } );
+			moduleLoader.register( { name: 'a', dependencies: [], start: lodash.noop } );
 			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 		} );
 
 		it( 'should eventually throw an error if a dependant module returns undefined', function() {
 			moduleLoader.register( { name: 'a', dependencies: [], start: () => 1 } );
-			moduleLoader.register( { name: 'b', dependencies: 'a', start: _.noop } );
+			moduleLoader.register( { name: 'b', dependencies: 'a', start: lodash.noop } );
 			return expect( moduleLoader.start() ).to.eventually.be.rejected;
 		} );
 
