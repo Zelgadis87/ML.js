@@ -29,7 +29,6 @@ class ModuleLoader {
 	constructor() {
 		this.length = 0;
 		this.modules = {};
-		this.maxOrder = 0;
 		this.globalStartPromise = null;
 		this.globalStopPromise = null;
 	}
@@ -370,8 +369,6 @@ class ModuleLoader {
 
 		}
 
-		this.maxOrder = curOrder - 1;
-
 		return Bluebird.all( lodash.map( this.modules, m => {
 			m.startTask.execute();
 			return m.startTask;
@@ -382,8 +379,9 @@ class ModuleLoader {
 
 		let deferred = defer();
 		let previousTier = { modules: [], promise: deferred.promise };
+		let maxOrder = lodash( this.modules ).map( 'order' ).max();
 
-		for ( let o = this.maxOrder; o >= 0; o-- ) {
+		for ( let o = maxOrder; o >= 0; o-- ) {
 			let tierModules = lodash.filter( this.modules, m => m.order === o );
 			let tierPromises = lodash.map( tierModules, m => m.stopTask.execute( previousTier ) );
 			previousTier = { modules: tierModules, promise: previousTier.promise.then( () => Bluebird.all( tierPromises ) ) };
