@@ -52,6 +52,113 @@ function createTask( fn ) {
 	return task;
 }
 
+class Module {
+
+	constructor( name, anonymous, dependencies, start, stop, obj ) {
+		this.name = name;
+		this.anonymous = anonymous;
+		this.dependencies = dependencies;
+		this.start = start;
+		this.stop = stop;
+		this.obj = obj;
+
+		this.startTask = this._createStartTask();
+		this.stopTask = this._createStopTask();
+
+		this._cancelled = false;
+		this._hasResolvedDependencies = false;
+		this._resolvedDependencies = [];
+		this._order = null;
+
+		this.starting = false;
+		this.started = false;
+		this.stopping = false;
+		this.stopped = false;
+	}
+
+	get resolvedDependencies() {
+		return this._resolvedDependencies;
+	}
+
+	set resolvedDependencies( value ) {
+		if ( isNullOrUndefined( value ) )
+			throw new Error( 'Resolved dependencies cannot be null or undefined' );
+		if ( this._hasResolvedDependencies )
+			throw new Error( 'Module already has resolved dependencies' );
+		this._hasResolvedDependencies = true;
+		this._resolvedDependencies = value;
+	}
+
+	get order() {
+		return this._order;
+	}
+
+	set order( value ) {
+		if ( this._order !== null )
+			throw new Error( 'Module already had an order' );
+		this._order = value;
+	}
+
+	/**
+	 * Calculate this module order.\n
+	 * A module order is defined as the priority in which a module should be loaded, relative to other modules.\n
+	 * Order is 0 if the module has no dependencies, otherwise it is the max order of the module dependencies plus one.
+	 * @return this module calculated order according to the definition above, or -1 if order could not be calculated.
+	 */
+	calculateOrder() {
+		if ( !this.dependencies.length )
+			return 0;
+		if ( lodash.some( this.resolvedDependencies, dp => dp.order === null ) )
+			return -1;
+		return lodash( this.resolvedDependencies ).map( 'order' ).max() + 1;
+	}
+
+	_createStartTask() {
+		return createTask( () => Bluebird.resolve()
+			// .tap( _ => console.info( 'Waiting for dependencies', m.name, _.map( m.resolvedDependencies, 'name' ) ) )
+			.then( () => Bluebird.all( lodash.map( this.resolvedDependencies, d => d.startTask ) ) )
+			// .tap( _ => console.info( 'Dependencies ready', m.name ) )
+			.then( deps => {
+				if ( this.stopping || this.stopped )
+					return undefined;
+				return Bluebird.resolve( deps )
+					// .tap( _ => console.info( 'Starting', this.name ) )
+					.tap( _ => this.starting = true )
+					.then( args => this.start.apply( this, args ) )
+					.tap( x => this._ensureValidReturnValue( x ) )
+					.tap( _ => this.starting = false )
+					.tap( _ => this.started = true )
+					// .tap( x => console.info( 'Started', this.name, x ) )
+				;
+			} )
+			// .catch( err => console.error( 'Failed to start task:', err ) )
+		);
+	}
+
+	_createStopTask() {
+		return createTask( () => Bluebird.resolve()
+			// .tap( _ => console.info( 'Stopping', this.name, this.started, this.starting ) )
+			.then( _ => {
+				if ( !this.started && !this.starting )
+					return undefined;
+				// console.info( this.name, 'Waiting on modules: ', [ this, ...this.resolvedDependencies ].map( x => x.name ), [ this, ...this.resolvedDependencies ].map( x => x.startTask.isFulfilled() ) );
+				return Bluebird.resolve( [ this.startTask, ...lodash.map( this.resolvedDependencies, d => d.startTask ) ] )
+					.all()
+					.then( values => this.stop( ...values ) );
+			} )
+			.tap( _ => this.stopped = true )
+			// .tap( _ => console.info( 'Stopped', this.name ) )
+			// .catch( err => console.error( 'Failed to stop task:', err ) )
+		);
+	}
+
+	_ensureValidReturnValue( x ) {
+		if ( !this.anonymous && isNullOrUndefined( x ) )
+			throw Error( `Module '${ this.name }' should return a valid object to be used by other modules, got: ${ x } ` );
+	}
+
+}
+
 class ModuleLoader {
 
 	constructor() {
@@ -176,12 +283,6 @@ class ModuleLoader {
 	// #endregion
 	// #region private methods
 
-	_ensureModuleReturnValue( module, x ) {
-		if ( !module.anonymous && !this._isValidReturnValue( x ) )
-			throw Error( `Module '${ module.name }' should return a valid object, to be used by other modules, got: ${ x } ` );
-		return x;
-	}
-
 	_isValidReturnValue( x ) {
 		return !lodash.isNil( x );
 	}
@@ -304,20 +405,7 @@ class ModuleLoader {
 			enumerable: false
 		} );
 
-		this.modules[ mod.name ] = {
-			name: mod.name,
-			anonymous: mod.anonymous,
-			dependencyNames: mod.dependencies,
-			start: mod.start,
-			stop: mod.stop,
-			obj: mod.obj,
-			order: null,
-			dependencyPromises: null,
-			startTask: null,
-			stopTask: null,
-			cancelled: false
-		};
-
+		this.modules[ mod.name ] = new Module( mod.name, mod.anonymous, mod.dependencies, mod.start, mod.stop );
 		this.length++;
 
 	}
@@ -379,9 +467,9 @@ class ModuleLoader {
 		if ( this.length === 0 )
 			return Bluebird.resolve();
 
-		// Validate module dependencies.
+		// Validate that no dependency is missing.
 		let missingDependencies = lodash( this.modules )
-			.map( m => m.dependencyNames )
+			.map( m => m.dependencies )
 			.flatten()
 			.uniq()
 			.filter( dependencyName => !this.modules[ dependencyName ] )
@@ -389,44 +477,33 @@ class ModuleLoader {
 		if ( missingDependencies.length > 0 )
 			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) } ` );
 
-		// Convert dependency names to real dependencies
-		lodash.each( this.modules, m => {
-			m.dependencies = lodash.map( m.dependencyNames, name => this.modules[ name ] );
-		} );
-
 		// We have at least one module to load, but no module has 0 depedency.
 		let rootModules = lodash.filter( this.modules, m => m.dependencies.length === 0 );
 		if ( rootModules.length === 0 )
 			throw new Error( `Unable to start ModuleLoader: No module found without dependencies !` );
 
-		// Assign order 0 to root modules and let them start loading.
-		lodash.each( rootModules, m => {
-			m.order = 0;
-			m.dependencyPromises = [];
-			m.startTask = this._createStartTask( m );
-			m.stopTask = this._createStopTask( m );
+		// Convert dependency names to real dependencies
+		lodash.each( this.modules, m => {
+			m.resolvedDependencies = lodash.map( m.dependencies, name => this.modules[ name ] );
 		} );
 
 		// Sort the modules
-		let stale = false, missingModules = lodash.filter( this.modules, m => m.order === null );
+		let stale = false, missingModules = lodash.values( this.modules );
 		while ( !stale && missingModules.length > 0 ) {
 
 			stale = true;
 			lodash.each( missingModules, m => {
 
-				let dependenciesResolved = lodash.every( m.dependencies, dep => dep.order !== null && dep.order >= 0 );
-				if ( dependenciesResolved ) {
+				let calculatedOrder = m.calculateOrder();
+				if ( calculatedOrder >= 0 ) {
 					stale = false;
-					// m.dependencies.forEach( dep => dep.required() );
-					m.order = lodash.maxBy( m.dependencies, dep => dep.order ).order + 1;
-					m.dependencyPromises = lodash.map( m.dependencies, 'startTask' );
-					m.startTask = this._createStartTask( m );
-					m.stopTask = this._createStopTask( m );
+					// m.resolvedDependencies.forEach( dep => dep.required() );
+					m.order = calculatedOrder;
 				}
-				// console.debug( 'dependency-resolver', m.name, _.map( m.dependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
+				// console.debug( 'dependency-resolver', m.name, _.map( m.resolvedDependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
 			} );
 
-			missingModules = lodash.filter( this.modules, m => m.order === null );
+			missingModules = lodash.filter( missingModules, m => m.order === null );
 
 		}
 
@@ -446,62 +523,12 @@ class ModuleLoader {
 			.sortBy( 'order' )
 			.reverse()
 			.reduce( ( partialPromise, m ) => {
-				if ( m.startTask.isFulfilled() ) {
-					// If the module was started, stop it.
-					// console.info( 'Stopping already started module ' + m.name );
-					return partialPromise.then( () => m.stopTask.execute() );
-				} else if ( m.starting ) {
-					// If the module was about to start, finish initialization and then stop it.
-					// console.info( 'Stopping module ' + m.name + ' as soon as inizialization completed', m.startTask.reflect().value, m.dependencies.map( d => d.name ) );
-					return partialPromise.then( () => m.stopTask.execute() );
-				} else {
-					// If the module was still waiting for dependencies, cancel it and ignore it.
-					// console.info( 'Canceling start promise for ' + m.name );
-					m.cancelled = true;
-					return partialPromise;
-				}
+				m.stopping = true;
+				return partialPromise.then( () => m.stopTask.execute() ).finally( _ => m.stopping = false );
 			}, deferred.promise );
 		deferred.resolve();
 		return combinedPromise;
 
-	}
-
-	_createStartTask( m ) {
-		return createTask( () => Bluebird.resolve()
-			// .tap( _ => console.info( 'Waiting for dependencies', m.name, _.map( m.dependencies, 'name' ) ) )
-			.then( () => Bluebird.all( m.dependencyPromises ) )
-			// .tap( _ => console.info( 'Dependencies ready', m.name ) )
-			.then( deps => {
-				if ( m.cancelled )
-					return undefined;
-				return Bluebird.resolve( deps )
-					// .tap( _ => console.info( 'Starting', m.name ) )
-					.tap( _ => m.starting = true )
-					// .then( args => console.info( args ) )
-					.then( args => m.start.apply( m, args ) )
-					.then( x => this._ensureModuleReturnValue( m, x ) )
-					.tap( _ => m.starting = false )
-					.tap( _ => m.started = true )
-					// .tap( x => console.info( 'Started', m.name, x ) )
-				;
-			} )
-			// .catch( err => console.error( 'Failed to start task:', err ) )
-		);
-	}
-
-	_createStopTask( m ) {
-		return createTask( () => Bluebird.resolve()
-			.then( () => m.startTask )
-			// .tap( _ => console.info( 'Stopping', m.name ) )
-			.tap( _ => m.stopping = true )
-			// .tap( _ => console.info( m.name, 'Waiting on modules: ', [ m, ...m.dependencies ].map( x => x.name ), [ m, ...m.dependencies ].map( x => x.startTask.isFulfilled() ) ) )
-			.then( _ => Bluebird.all( [ m.startTask, ...m.dependencyPromises ] ) )
-			.then( args => m.stop.apply( m, args ) )
-			.tap( _ => m.stopping = false )
-			.tap( _ => m.stopped = true )
-			// .tap( _ => console.info( 'Stopped', m.name ) )
-			// .catch( err => console.error( 'Failed to stop task:', err ) )
-		);
 	}
 
 	_generateAnonymousModuleName() {
