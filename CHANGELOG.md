@@ -1,4 +1,8 @@
 
+## v1.2.0 (2019/09/21 08:40)
+- Improved and clarified stopping algorithm handling of in-progress modules
+- Code refactoring
+
 ## v1.1.5 (2019/09/16 13:12)
 - Updated dependencies
 
