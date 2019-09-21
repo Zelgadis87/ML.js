@@ -1,34 +1,37 @@
 
-const _ = require( 'lodash' )
+const a = 1 // eslint-disable-line no-unused-vars
 	, Bluebird = require( 'bluebird' )
+	, defer = require( './defer' )
 	, fs = require( 'fs' )
-	, path = require( 'path' )
 	, FunctionParser = require( 'parse-function' )
-	, isNullOrUndefined = x => _.isNull( x ) || _.isUndefined( x )
+	, isNullOrUndefined = x => x === null || x === undefined
+	, lodash = require( 'lodash' )
+	, Module = require( './Module' )
+	, path = require( 'path' )
 	;
 
-Bluebird.config( { cancellation: true } );
-
+/* istanbul ignore next */
 const functionParser = FunctionParser.default ? FunctionParser.default() : new FunctionParser();
 
 const isValidDependencyName = ( str ) => {
-	return _.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
+	return lodash.isString( str ) && str.match( /^[A-Za-z0-9-]+$/ );
 };
 
 const bind = function( fn, _this ) {
 	if ( fn === undefined )
 		return undefined;
-	if ( _.isFunction( fn ) )
-		return _.bind( fn, _this );
+	if ( lodash.isFunction( fn ) )
+		return lodash.bind( fn, _this );
 	throw new Error( 'Function expected, got ' + typeof fn );
 };
+
 class ModuleLoader {
 
 	constructor() {
 		this.length = 0;
 		this.modules = {};
-		this.startPromise = null;
-		this.stopPromise = null;
+		this.globalStartPromise = null;
+		this.globalStopPromise = null;
 	}
 
 	register( ...args ) {
@@ -44,7 +47,7 @@ class ModuleLoader {
 
 	resolve( dep ) {
 
-		if ( _.isArray( dep ) ) {
+		if ( lodash.isArray( dep ) ) {
 			let invalidDependencies = dep.filter( ( name ) => !isValidDependencyName( name ) );
 			if ( invalidDependencies.length > 0 )
 				throw new Error( 'Invalid module names found: ' + invalidDependencies.join( ', ' ) );
@@ -54,7 +57,7 @@ class ModuleLoader {
 				return Bluebird.resolve( undefined );
 			if ( !this.started )
 				this.start();
-			return this.modules[ dep ].startPromise;
+			return this.modules[ dep ].startTask;
 		} else {
 			throw new Error( `Invalid dependency name, string or array expected, got: ${ typeof dep }` );
 		}
@@ -62,7 +65,7 @@ class ModuleLoader {
 	}
 
 	registerValue( name, value ) {
-		if ( _.isUndefined( name ) || _.isNull( name ) )
+		if ( lodash.isUndefined( name ) || lodash.isNull( name ) )
 			throw new Error( `Cannot register a value with a null or undefined name` );
 		if ( !this._isValidReturnValue( value ) )
 			throw new Error( `Value ${ value } is not valid for module '${ name }'` );
@@ -70,14 +73,14 @@ class ModuleLoader {
 			name: name,
 			dependencies: [],
 			start: () => value,
-			stop: _.noop
+			stop: lodash.noop
 		} );
 	}
 
 	registerFile( filepath ) {
 		let lib = require( filepath );
 		let name = this._generateNameFromFilepath( filepath );
-		if ( _.isFunction( lib ) ) {
+		if ( lodash.isFunction( lib ) ) {
 			let result = functionParser.parse( lib );
 
 			// Register as new instance.
@@ -87,7 +90,7 @@ class ModuleLoader {
 				start: function( ...deps ) {
 					return lib.apply( {}, deps );
 				},
-				stop: _.noop
+				stop: lodash.noop
 			} );
 		} else if ( this._isValidReturnValue( lib ) ) {
 			// Register as value.
@@ -95,7 +98,7 @@ class ModuleLoader {
 				name: name,
 				dependencies: [],
 				start: () => lib,
-				stop: _.noop
+				stop: lodash.noop
 			} );
 		} else {
 			throw new Error( `File ${ filepath } does not contain a valid module definition !` );
@@ -116,50 +119,44 @@ class ModuleLoader {
 	}
 
 	list() {
-		return _.map( this.modules, 'name' );
+		return lodash.map( this.modules, 'name' );
 	}
 
 	start() {
 		if ( !this.started )
-			this.startPromise = Bluebird.try( this._doStart.bind( this ) );
-		return this.startPromise;
+			this.globalStartPromise = Bluebird.try( this._doStart.bind( this ) );
+		return this.globalStartPromise;
 	}
 
 	stop() {
 		if ( !this.started )
 			throw new Error( 'Cannot stop, loader not even started' );
 		if ( !this.stopped )
-			this.stopPromise = Bluebird.try( this._doStop.bind( this ) );
-		return this.stopPromise;
+			this.globalStopPromise = Bluebird.try( this._doStop.bind( this ) );
+		return this.globalStopPromise;
 	}
 
 	// #region current loader state
 
 	get started() {
-		return this.startPromise !== null;
+		return this.globalStartPromise !== null;
 	}
 
 	get stopped() {
-		return this.stopPromise !== null;
+		return this.globalStopPromise !== null;
 	}
 
 	// #endregion
 	// #region private methods
 
-	_ensureModuleReturnValue( module, x ) {
-		if ( !module.anonymous && !this._isValidReturnValue( x ) )
-			throw Error( `Module '${ module.name }' should return a valid object, to be used by other modules, got: ${ x } ` );
-		return x;
-	}
-
 	_isValidReturnValue( x ) {
-		return !_.isNil( x );
+		return !lodash.isNil( x );
 	}
 
 	_register1( a ) {
-		if ( _.isArray( a ) ) {
+		if ( lodash.isArray( a ) ) {
 			// Array syntax definition
-			let [ deps, prelast, last ] = [ a.slice( 0, -2 ), a.slice( -2, a.length - 1 )[0], a.slice( -1, a.length )[0] ];
+			let [ deps, prelast, last ] = [ a.slice( 0, -2 ), a.slice( -2, a.length - 1 )[ 0 ], a.slice( -1, a.length )[ 0 ] ];
 			if ( this._isArgValidStart( prelast ) && this._isArgValidStop( last ) ) {
 				// last two parameters are the start and stop functions, respectively
 				return this._doRegister( { dependencies: deps, start: prelast, stop: last } );
@@ -170,7 +167,7 @@ class ModuleLoader {
 			} else {
 				throw new Error( 'Module does not define a valid start function in array syntax.' );
 			}
-		} else if ( _.isObjectLike( a ) ) {
+		} else if ( lodash.isObjectLike( a ) ) {
 			// Object instance mode
 			return this._doRegister( {
 				name: a.name,
@@ -188,10 +185,10 @@ class ModuleLoader {
 	}
 
 	_register2( a, b ) {
-		if ( _.isArray( a ) ) {
+		if ( lodash.isArray( a ) ) {
 			// Anonymous spread syntax with no stop function.
 			return this._doRegister( { dependencies: a, start: b } );
-		} else if ( this._isArgValidName( a ) && _.isObjectLike( b ) ) {
+		} else if ( this._isArgValidName( a ) && lodash.isObjectLike( b ) ) {
 			// Object instance mode with standalone name
 			return this._doRegister( {
 				name: a,
@@ -209,10 +206,10 @@ class ModuleLoader {
 	}
 
 	_register3( a, b, c ) {
-		if ( _.isArray( a ) ) {
+		if ( lodash.isArray( a ) ) {
 			// Anonymous spread syntax.
 			return this._doRegister( { dependencies: a, start: b, stop: c } );
-		} else if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) && _.isObjectLike( c ) ) {
+		} else if ( this._isArgValidName( a ) && this._isArgValidDependencies( b ) && lodash.isObjectLike( c ) ) {
 			// Object instance mode with name and dependencies
 			return this._doRegister( {
 				name: a,
@@ -242,19 +239,19 @@ class ModuleLoader {
 	}
 
 	_isArgValidName( name ) {
-		return _.isString( name );
+		return lodash.isString( name );
 	}
 
 	_isArgValidDependencies( deps ) {
-		return _.isString( deps ) || _.isArray( deps );
+		return lodash.isString( deps ) || lodash.isArray( deps );
 	}
 
 	_isArgValidStart( start ) {
-		return _.isFunction( start );
+		return lodash.isFunction( start );
 	}
 
 	_isArgValidStop( stop ) {
-		return _.isFunction( stop );
+		return lodash.isFunction( stop );
 	}
 
 	_illegalRegistrationError( ...args ) {
@@ -274,19 +271,7 @@ class ModuleLoader {
 			enumerable: false
 		} );
 
-		this.modules[ mod.name ] = {
-			name: mod.name,
-			anonymous: mod.anonymous,
-			dependencyNames: mod.dependencies,
-			start: mod.start,
-			stop: mod.stop,
-			obj: mod.obj,
-			order: null,
-			dependencyPromises: null,
-			startPromise: null,
-			stopPromise: null
-		};
-
+		this.modules[ mod.name ] = new Module( mod.name, mod.anonymous, mod.dependencies, mod.start, mod.stop );
 		this.length++;
 
 	}
@@ -308,31 +293,31 @@ class ModuleLoader {
 
 		if ( isNullOrUndefined( mod.dependencies ) ) {
 			mod.dependencies = [];
-		} else if ( _.isString( mod.dependencies ) ) {
+		} else if ( lodash.isString( mod.dependencies ) ) {
 			if ( mod.dependencies === '' ) {
 				mod.dependencies = [];
 			} else {
 				mod.dependencies = [ mod.dependencies ];
 			}
-		} else if ( !_.isArray( mod.dependencies ) ) {
+		} else if ( !lodash.isArray( mod.dependencies ) ) {
 			throw new Error( `Module '${ mod.name }' does not define a valid dependencies property.` );
 		}
 
 		/* istanbul ignore else */
-		if ( _.isUndefined( mod.start ) ) {
+		if ( lodash.isUndefined( mod.start ) ) {
 			mod.start = function() { return mod.obj; };
 		} else if ( !this._isArgValidStart( mod.start ) ) {
 			throw new Error( `Module '${ mod.name }' does not define a valid start property.` );
 		}
 
 		/* istanbul ignore else */
-		if ( _.isUndefined( mod.stop ) ) {
+		if ( lodash.isUndefined( mod.stop ) ) {
 			mod.stop = function() { return mod.obj; };
 		} else if ( !this._isArgValidStop( mod.stop ) ) {
 			throw new Error( `Module '${ mod.name }' does not define a valid stop property.` );
 		}
 
-		let invalidDependencies = _.filter( mod.dependencies, d => !isValidDependencyName( d ) || d === mod.name );
+		let invalidDependencies = lodash.filter( mod.dependencies, d => !isValidDependencyName( d ) || d === mod.name );
 		if ( invalidDependencies.length > 0 )
 			throw new Error( `Module '${ mod.name }' specified some invalid dependencies: ${ invalidDependencies.join( ', ' ) }` );
 
@@ -348,9 +333,9 @@ class ModuleLoader {
 		if ( this.length === 0 )
 			return Bluebird.resolve();
 
-		// Validate module dependencies.
-		let missingDependencies = _( this.modules )
-			.map( m => m.dependencyNames )
+		// Validate that no dependency is missing.
+		let missingDependencies = lodash( this.modules )
+			.map( m => m.dependencies )
 			.flatten()
 			.uniq()
 			.filter( dependencyName => !this.modules[ dependencyName ] )
@@ -358,68 +343,52 @@ class ModuleLoader {
 		if ( missingDependencies.length > 0 )
 			throw new Error( `Unable to start ModuleLoader: Some dependencies could not be resolved: ${ missingDependencies.join( ', ' ) } ` );
 
-		// Convert dependency names to real dependencies
-		_.each( this.modules, m => {
-			m.dependencies = _.map( m.dependencyNames, name => this.modules[ name ] );
-		} );
-
 		// We have at least one module to load, but no module has 0 depedency.
-		let rootModules = _.filter( this.modules, m => m.dependencies.length === 0 );
+		let rootModules = lodash.filter( this.modules, m => m.dependencies.length === 0 );
 		if ( rootModules.length === 0 )
 			throw new Error( `Unable to start ModuleLoader: No module found without dependencies !` );
 
-		// Assign order 0 to root modules and let them start loading.
-		_.each( rootModules, m => {
-			m.order = 0;
-			m.dependencyPromises = [];
-			m.startPromise = Bluebird.try( m.start.bind( m ) ).then( ( x ) => this._ensureModuleReturnValue( m, x ) );
+		// Convert dependency names to real dependencies
+		lodash.each( this.modules, m => {
+			m.resolvedDependencies = lodash.map( m.dependencies, name => this.modules[ name ] );
 		} );
 
 		// Sort the modules
-		let stale = false, missingModules = _.filter( this.modules, m => m.order === null );
-		while ( !stale && missingModules.length > 0 ) {
+		let missingModules = lodash.values( this.modules ), curOrder = 0;
+		while ( missingModules.length > 0 ) {
 
-			stale = true;
-			_.each( missingModules, m => {
+			let nextModules = lodash.filter( missingModules, m => lodash.every( m.resolvedDependencies, dep => dep.order !== null ) );
+			if ( !nextModules.length )
+				throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ lodash.map( missingModules, m => m.name ).join( ', ' ) } !` );
 
-				let dependenciesResolved = _.every( m.dependencies, dep => dep.order !== null && dep.order >= 0 );
-				if ( dependenciesResolved ) {
-					stale = false;
-					// m.dependencies.forEach( dep => dep.required() );
-					m.order = _.maxBy( m.dependencies, dep => dep.order ).order + 1;
-					m.dependencyPromises = _.map( m.dependencies, 'startPromise' );
-					m.startPromise = Bluebird.all( m.dependencyPromises )
-						.then( args => m.start.apply( m, args ) )
-						.then( x => this._ensureModuleReturnValue( m, x ) );
-				}
-				// console.debug( 'dependency-resolver', m.name, _.map( m.dependencies, d => ( { name: d.name, order: d.order } ) ), dependenciesResolved ? '=> ' + m.order : '=> --' );
+			lodash.each( nextModules, m => {
+				m.order = curOrder;
 			} );
 
-			missingModules = _.filter( this.modules, m => m.order === null );
+			missingModules = lodash.filter( missingModules, m => m.order === null );
+			curOrder++;
 
 		}
 
-		if ( stale )
-			throw new Error( `Unable to start ModuleLoader: Circular dependencies detected, some modules could not be started: ${ _.map( missingModules, m => m.name ).join( ', ' ) } !` );
-
-		return Bluebird.all( _.map( this.modules, m => m.startPromise ) );
+		return Bluebird.all( lodash.map( this.modules, m => {
+			m.startTask.execute();
+			return m.startTask;
+		} ) );
 	}
 
 	_doStop() {
 
-		return _( this.modules )
-			.sortBy( 'order' )
-			.reverse()
-			.reduce( ( partialPromise, m ) => {
-				if ( m.startPromise.isFulfilled() ) {
-					// If the module was started, stop it.
-					return partialPromise.then( () => Bluebird.resolve( [ m.startPromise, ...m.dependencyPromises ] ).spread( m.stop ) );
-				} else {
-					// If the module was still waiting for dependencies, cancel it and ignore it.
-					m.startPromise.cancel();
-					return partialPromise;
-				}
-			}, Bluebird.resolve() );
+		let deferred = defer();
+		let previousTier = { modules: [], promise: deferred.promise };
+		let maxOrder = lodash( this.modules ).map( 'order' ).max();
+
+		for ( let o = maxOrder; o >= 0; o-- ) {
+			let tierModules = lodash.filter( this.modules, m => m.order === o );
+			let tierPromises = lodash.map( tierModules, m => m.stopTask.execute( previousTier ) );
+			previousTier = { modules: tierModules, promise: previousTier.promise.then( () => Bluebird.all( tierPromises ) ) };
+		}
+		deferred.resolve();
+		return previousTier.promise;
 
 	}
 
@@ -432,7 +401,7 @@ class ModuleLoader {
 
 	_generateNameFromFilepath( filepath ) {
 		let filename = path.parse( filepath ).name;
-		return _.camelCase( filename );
+		return lodash.camelCase( filename );
 	}
 
 	// #endregion
