@@ -118,6 +118,32 @@ class ModuleLoader {
 		}
 	}
 
+	registerClass( clsOrFunc ) {
+		if ( isNullOrUndefined( clsOrFunc ) )
+			throw new Error( 'Cannot register a null or undefined class' );
+		if ( !lodash.isFunction( clsOrFunc ) )
+			throw new Error( 'Class or function expected, got: ' + typeof clsOrFunc );
+		
+		const result = functionParser.parse( clsOrFunc );
+		console.info( 'result', result, { isNamed: result.isNamed, isValid: result.isValid, isAsync: result.isAsync, isArrow: result.isArrow, isGenerator: result.isGenerator, isAnonymous: result.isAnonymous } );
+
+		// Register as new instance.
+		return this._doRegister( {
+			name: lodash.camelCase( result.name ),
+			dependencies: result.args,
+			start: async function( ...deps ) {
+				let instance = clsOrFunc.constructor.apply( null, deps );
+				if ( lodash.isFunction( instance.start ) ) await instance.start();
+				return instance;
+			},
+			stop: async function( instance ) {
+				if ( lodash.isFunction( instance.stop ) )
+					await instance.stop();
+				return instance;
+			}
+		} );
+	}
+
 	list() {
 		return lodash.map( this.modules, 'name' );
 	}
@@ -271,9 +297,11 @@ class ModuleLoader {
 			enumerable: false
 		} );
 
-		this.modules[ mod.name ] = new Module( mod.name, mod.anonymous, mod.dependencies, mod.start, mod.stop );
+		let moduleInstance = new Module( mod.name, mod.anonymous, mod.dependencies, mod.start, mod.stop );
+		this.modules[ mod.name ] = moduleInstance;
 		this.length++;
 
+		return moduleInstance;
 	}
 
 	_validateModuleDefinition( mod ) {

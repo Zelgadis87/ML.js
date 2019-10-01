@@ -895,4 +895,221 @@ describe( 'ModuleLoader', function() {
 
 	} );
 
+	describe.skip( '#registerClass', function() {
+
+		it( 'should allow registering a class', function() {
+			class Test1 {}
+			expect( () => moduleLoader.registerClass( Test1 ) ).to.not.throw();
+		} );
+
+		it( 'should allow registering a function', function() {
+			function Test1() {}
+			expect( () => moduleLoader.registerClass( Test1 ) ).to.not.throw();
+		} );
+
+		it( 'should allow registering an async function', function() {
+			async function Test1() {}
+			expect( () => moduleLoader.registerClass( Test1 ) ).to.not.throw();
+		} );
+		
+		it( 'should not allow registering null or undefined objects', function() {
+			expect( () => moduleLoader.registerClass( null ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( undefined ) ).to.throw( Error );
+		} );
+		
+		it( 'should not allow registering not-instantiable objects', function() {
+			expect( () => moduleLoader.registerClass( 1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( "" ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( "abc" ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( [] ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( [ 1 ] ) ).to.throw( Error );
+		} );
+		
+		it( 'should consider the camelCase version of a class name as the module name', function() {
+			class Test {}
+			class Test1 {}
+			class TestAction {}
+			let t = class TestNamed {};
+			expect( moduleLoader.registerClass( Test ).name ).to.be.eql( 'test' );
+			expect( moduleLoader.registerClass( Test1 ).name ).to.be.eql( 'test1' );
+			expect( moduleLoader.registerClass( TestAction ).name ).to.be.eql( 'testAction' );
+			expect( moduleLoader.registerClass( t ).name ).to.be.eql( 'testNamed' );
+		});
+
+		it( 'should consider the camelCase version of a function name as the module name', function() {
+			function Test() {}
+			let func = function Test1() { };
+			function TestAction() {}
+			expect( moduleLoader.registerClass( Test ).name ).to.be.eql( 'test' );
+			expect( moduleLoader.registerClass( func ).name ).to.be.eql( 'test1' );
+			expect( moduleLoader.registerClass( TestAction ).name ).to.be.eql( 'testAction' );
+		});
+
+		it( 'should consider an anonymous function as an anonymous module', function() {
+			let f1 = function() { };
+			let f2 = () => {};
+			let f3 = async x => {};
+			expect( moduleLoader.registerClass( f1 ).anonymous ).to.be.eql( true );
+			expect( moduleLoader.registerClass( f2 ).anonymous ).to.be.eql( true );
+			expect( moduleLoader.registerClass( f3 ).anonymous ).to.be.eql( true );
+		});
+
+		it( 'should consider an anonymous class as an anonymous module', function() {
+			let c1 = class {};
+			expect( moduleLoader.registerClass( c1 ).anonymous ).to.be.eql( true );
+		});
+
+		it( 'should consider a class with an empty constructor as a no-dependency module', function() {
+			class Test1 {}
+			class Test2 { constructor() { } }
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [] );
+			expect( moduleLoader.registerClass( Test2 ).dependencies ).to.be.eql( [] );
+		}  );
+		
+		it( 'should consider a function with a no arguments as a no-dependency module', function() {
+			function Test1() { }
+			let func = function Test2() { };
+			let f3 = () => {};
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [] );
+			expect( moduleLoader.registerClass( func ).dependencies ).to.be.eql( [] );
+			expect( moduleLoader.registerClass( f3 ).dependencies ).to.be.eql( [] );
+		} );
+		
+		it( 'should automatically understand a class dependencies from the constructor arguments', function() {
+			class Test1 { constructor( a ) { } }
+			class Test2 { constructor( test1, b ) { } }
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [ 'a' ] );
+			expect( moduleLoader.registerClass( Test2 ).dependencies ).to.be.eql( [ 'test1', 'b' ] );
+		} );
+		
+		it( 'should automatically understand a function dependencies from the function arguments', async function() {
+			function Test1( a ) { }
+			let func = function Test2( test1, b ) { };
+			let f3 = ( a, b, c ) => { };
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [ 'a' ] );
+			expect( moduleLoader.registerClass( func ).dependencies ).to.be.eql( [ 'test1', 'b' ] );
+			expect( moduleLoader.registerClass( f3 ).dependencies ).to.be.eql( [ 'a', 'b', 'c' ] );
+		} );
+		
+		it( 'should use the explicitly defined class dependencies when available instead of guessing them', function() {
+			class Test1 { constructor() { } static get dependencies() { return [ 'a' ]; } }
+			class Test2 { constructor() { } }
+			Test2.dependencies = [ 'a' ];
+			class Test3 { constructor( b ) { } }
+			Test3.dependencies = 'a';
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [ 'a' ] );
+			expect( moduleLoader.registerClass( Test2 ).dependencies ).to.be.eql( [ 'a' ] );
+			expect( moduleLoader.registerClass( Test3 ).dependencies ).to.be.eql( [ 'a' ] );
+		} );
+
+		it( 'should use the explicitly defined function dependencies when available instead of guessing them', function() {
+			function Test1() { }
+			Test1.dependencies = [ 'a' ];
+			let func = () => {};
+			func.dependencies = [ 'a' ];
+			expect( moduleLoader.registerClass( Test1 ).dependencies ).to.be.eql( [ 'a' ] );
+			expect( moduleLoader.registerClass( func ).dependencies ).to.be.eql( [ 'a' ] );
+		} );
+
+		it( 'should not allow explicitly defined invalid dependencies', function() {
+			class Test1 { constructor() { } static get dependencies() { return [ 1 ]; } }
+			class Test2 { constructor() { } static get dependencies() { return {}; } }
+			class Test3 { constructor() { } static get dependencies() { return () => {}; } }
+			class Test4 { constructor() { } static get dependencies() { return 1; } }
+			function Test5() {}
+			Test5.dependencies = [ 1 ];
+			expect( () => moduleLoader.registerClass( Test1 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( Test2 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( Test3 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( Test4 ) ).to.throw( Error );
+			expect( () => moduleLoader.registerClass( Test5 ) ).to.throw( Error );
+		} );
+
+		it( 'should eventually return an instance of the class when starting', async function() {
+			class Test1 {};
+			moduleLoader.registerClass( Test1 );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled.then( _ => expect( moduleLoader.resolve( 'test1' ) ).to.be.instanceOf( Test1 ) );
+		} );
+
+		it( 'should eventually return an instance of a function when starting', async function() {
+			function Test1() { return this; }
+			moduleLoader.registerClass( Test1 );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled.then( _ => expect( moduleLoader.resolve( 'test1' ) ).to.be.instanceOf( Test1 ) );
+		} );
+
+		it( 'should eventually return an instance of an async function when starting', async function() {
+			async function Test1() { 
+				await Bluebird.delay( 50 );
+				return this;
+			};
+			moduleLoader.registerClass( Test1 );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled.then( _ => expect( moduleLoader.resolve( 'test1' ) ).to.be.instanceOf( Test1 ) );
+		} );
+		
+		it( 'should eventually reject a function that returns something other than an instance of that function', function() {
+			function Test1() { return 1; }
+			moduleLoader.registerClass( Test1 );
+			return expect( moduleLoader.start() ).to.eventually.be.rejected;
+		} );
+		
+		it( 'should eventually invoke the start method if present', async function() {
+			let startedA = false, startedB = false;
+			class TestA {
+				start() {
+					startedA = true;
+				}
+			}
+			function TestB() { 
+				this.start = () => startedB = true;
+				return this;
+			}
+			moduleLoader.registerClass( TestA );
+			moduleLoader.registerClass( TestB );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled.then( _ => {
+				expect( startedA ).to.be.true;
+				expect( startedB ).to.be.true;
+			} );
+		} );
+		
+		it( 'should eventually invoke the stop method if present', async function() {
+			let stoppedA = false, stoppedB = false;
+			class TestA {
+				stop() {
+					stoppedA = true;
+				}
+			}
+			function TestB() {
+				this.stop = () => stoppedB = true;
+				return this;
+			}
+			moduleLoader.registerClass( TestA );
+			moduleLoader.registerClass( TestB );
+			return expect( moduleLoader.start().delay( 50 ).then( () => moduleLoader.stop() ) ).to.eventually.be.fulfilled.then( _ => {
+				expect( stoppedA ).to.be.true;
+				expect( stoppedB ).to.be.true;
+			} );
+		} );
+
+		it( 'should eventually ignore the start and stop field of a class', function() {
+			class TestA {
+				constructor() {
+					this.stop = 2;
+					return this;
+				}
+				get start() {
+					return 1;
+				}
+			}
+			function TestB() {
+				this.start = 2;
+				return this;
+			}
+			TestB.prototype.stop = 1;
+			moduleLoader.registerClass( TestA );
+			moduleLoader.registerClass( TestB );
+			return expect( moduleLoader.start() ).to.eventually.be.fulfilled;
+		} );
+
+	} );
+
 } );

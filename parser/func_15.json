@@ -1,0 +1,82 @@
+{
+    "original": "class asd4 extends asd1 { constructor() { super(); } }",
+    "tree": {
+        "type": "Program",
+        "start": 0,
+        "end": 54,
+        "body": [
+            {
+                "type": "ClassDeclaration",
+                "start": 0,
+                "end": 54,
+                "id": {
+                    "type": "Identifier",
+                    "start": 6,
+                    "end": 10,
+                    "name": "asd4"
+                },
+                "superClass": {
+                    "type": "Identifier",
+                    "start": 19,
+                    "end": 23,
+                    "name": "asd1"
+                },
+                "body": {
+                    "type": "ClassBody",
+                    "start": 24,
+                    "end": 54,
+                    "body": [
+                        {
+                            "type": "MethodDefinition",
+                            "start": 26,
+                            "end": 52,
+                            "kind": "constructor",
+                            "static": false,
+                            "computed": false,
+                            "key": {
+                                "type": "Identifier",
+                                "start": 26,
+                                "end": 37,
+                                "name": "constructor"
+                            },
+                            "value": {
+                                "type": "FunctionExpression",
+                                "start": 37,
+                                "end": 52,
+                                "id": null,
+                                "expression": false,
+                                "generator": false,
+                                "async": false,
+                                "params": [],
+                                "body": {
+                                    "type": "BlockStatement",
+                                    "start": 40,
+                                    "end": 52,
+                                    "body": [
+                                        {
+                                            "type": "ExpressionStatement",
+                                            "start": 42,
+                                            "end": 50,
+                                            "expression": {
+                                                "type": "CallExpression",
+                                                "start": 42,
+                                                "end": 49,
+                                                "callee": {
+                                                    "type": "Super",
+                                                    "start": 42,
+                                                    "end": 47
+                                                },
+                                                "arguments": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "sourceType": "script"
+    }
+}

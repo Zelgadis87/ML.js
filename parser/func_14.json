@@ -1,0 +1,60 @@
+{
+    "original": "class asd3 { constructor() { } }",
+    "tree": {
+        "type": "Program",
+        "start": 0,
+        "end": 32,
+        "body": [
+            {
+                "type": "ClassDeclaration",
+                "start": 0,
+                "end": 32,
+                "id": {
+                    "type": "Identifier",
+                    "start": 6,
+                    "end": 10,
+                    "name": "asd3"
+                },
+                "superClass": null,
+                "body": {
+                    "type": "ClassBody",
+                    "start": 11,
+                    "end": 32,
+                    "body": [
+                        {
+                            "type": "MethodDefinition",
+                            "start": 13,
+                            "end": 30,
+                            "kind": "constructor",
+                            "static": false,
+                            "computed": false,
+                            "key": {
+                                "type": "Identifier",
+                                "start": 13,
+                                "end": 24,
+                                "name": "constructor"
+                            },
+                            "value": {
+                                "type": "FunctionExpression",
+                                "start": 24,
+                                "end": 30,
+                                "id": null,
+                                "expression": false,
+                                "generator": false,
+                                "async": false,
+                                "params": [],
+                                "body": {
+                                    "type": "BlockStatement",
+                                    "start": 27,
+                                    "end": 30,
+                                    "body": []
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "sourceType": "script"
+    }
+}

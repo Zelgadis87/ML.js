@@ -1,0 +1,32 @@
+{
+    "original": "function asd() { }",
+    "tree": {
+        "type": "Program",
+        "start": 0,
+        "end": 18,
+        "body": [
+            {
+                "type": "FunctionDeclaration",
+                "start": 0,
+                "end": 18,
+                "id": {
+                    "type": "Identifier",
+                    "start": 9,
+                    "end": 12,
+                    "name": "asd"
+                },
+                "expression": false,
+                "generator": false,
+                "async": false,
+                "params": [],
+                "body": {
+                    "type": "BlockStatement",
+                    "start": 15,
+                    "end": 18,
+                    "body": []
+                }
+            }
+        ],
+        "sourceType": "script"
+    }
+}
