@@ -4,9 +4,9 @@ const a = 1 // eslint-disable-line no-unused-vars
 	, assert = require( 'assert' ).strict
 	;
 
-const ensureDefined = function( value, message ) {
+const ensureDefined = function( value, key ) {
 	if ( value === null || value === undefined )
-		throw new Error( message ? message : 'Value expected, got ' + value );
+		throw new Error( `${key} expected, got ${value}` );
 	return value;
 };
 
@@ -53,16 +53,17 @@ class ResultBuilder {
 		} ).filter( Boolean );
 		if ( undefineds.length )
 			throw new Error( 'Cannot build result for ' + this._expr + ', the following properties have not been defined: ' + undefineds.join( ', ' ) );
-		return new Result( this._name, this._args );
+		return new Result( this._name, this._async, this._args );
 	}
 
 }
 
 class Result {
-	
-	constructor( name, args ) {
+
+	constructor( name, async, args ) {
 		this._name = name;
-		this._args = ensureDefined( args );
+		this._async = async;
+		this._args = ensureDefined( args, 'args' );
 	}
 
 	get name() {
@@ -71,6 +72,14 @@ class Result {
 
 	get args() {
 		return this._args;
+	}
+
+	get async() {
+		return this._async;
+	}
+
+	get anonymous() {
+		return this._name === null;
 	}
 
 }
@@ -90,65 +99,71 @@ class State {
 		return this._name;
 	}
 
-	explore( node, resultBuilder ) {
+	explore( node ) {
 		let newState = this._transitions[ node.type ];
 		assert( newState, 'No transition found from ' + this.name + ' for node ' + node.type );
-		return newState.beExplored( this, node, resultBuilder );
+		return newState.beExplored( this, node );
 	}
 
-	/**
-	 * private function
-	 * @param {State} parentState 
-	 * @param {*} node 
-	 * @param {*} resultBuilder 
-	 */
-	beExplored( parentState, node, resultBuilder ) {
-		this._exploreFn( this, node, resultBuilder );
+	beExplored( parentState, node ) {
+		return this._exploreFn( this, node );
 	}
 
 }
 
-let ProgramArrowFunctionExpressionState = new State( 'ProgramArrowFunctionExpressionState', ( self, node, resultBuilder ) => {
-	resultBuilder
+let ProgramArrowFunctionExpressionState = new State( 'ProgramArrowFunctionExpressionState', ( self, node ) => {
+	return new ResultBuilder()
 		.name( null )
 		.args( node.params.map( p => p.name ) )
 		.async( node.async );
 } );
 
-let ProgramFunctionDeclarationState = new State( 'ProgramFunctionDeclarationState', ( self, node, resultBuilder ) => {
-	resultBuilder
+let ProgramFunctionDeclarationState = new State( 'ProgramFunctionDeclarationState', ( self, node ) => {
+	return new ResultBuilder()
 		.name( node.id ? node.id.name : null )
 		.args( node.params.map( p => p.name ) )
 		.async( node.async );
 } );
 
-let ProgramClassDeclarationState = new State( 'ProgramClassDeclarationState', ( self, node, resultBuilder ) => {
+let ClassBodyState = new State( 'ClassBodyState', ( self, node ) => {
 	assert( node.body );
-	resultBuilder
-		.name( node.id ? node.id.name : null )
+
+	let constructor = node.body.find( child => child.type === 'MethodDefinition' && child.kind === 'constructor' );
+	let params = constructor ? constructor.value.params : [];
+
+	return new ResultBuilder()
+		.args( params.map( p => p.name ) )
 		.async( false );
-	return self.explore( node.body );
 } );
 
-let ProgramExpressionState = new State( 'ProgramExpressionState', ( self, node, resultBuilder ) => {
+let ProgramClassDeclarationState = new State( 'ProgramClassDeclarationState', ( self, node ) => {
+	assert( node.body );
+	return self.explore( node.body )
+		.name( node.id ? node.id.name : null )
+		.async( false );
+}, {
+	ClassBody: ClassBodyState
+} );
+
+let ProgramExpressionState = new State( 'ProgramExpressionState', ( self, node ) => {
 	assert( node.expression );
-	return self.explore( node.expression, resultBuilder );
+	return self.explore( node.expression );
 }, {
 	ArrowFunctionExpression: ProgramArrowFunctionExpressionState
 } );
 
-let ProgramState = new State( 'ProgramState', ( self, node, resultBuilder ) => {
+let ProgramState = new State( 'ProgramState', ( self, node ) => {
 	assert( node.body );
 	assert.equal( node.body.length, 1 );
-	return self.explore( node.body[ 0 ], resultBuilder );
+	return self.explore( node.body[ 0 ] );
 }, {
 	ExpressionStatement: ProgramExpressionState,
 	FunctionDeclaration: ProgramFunctionDeclarationState,
 	ClassDeclaration: ProgramClassDeclarationState
 } );
 
-let InitialState = new State( 'InitialState', ( self, node, resultBuilder ) => {
-	return self.explore( node, resultBuilder );
+let InitialState = new State( 'InitialState', ( self, node ) => {
+	return self.explore( node );
 }, {
 	Program: ProgramState
 } );
@@ -161,8 +176,7 @@ module.exports = function parseFunction( fn ) {
 		throw new Error( 'Cannot parse a non-function' );
 
 	let parseTree = acorn.parse( fn );
-	let resultBuilder = new ResultBuilder( fn.toString() );
-	InitialState.explore( parseTree, resultBuilder );
+	let resultBuilder = InitialState.explore( parseTree );
 
 	return resultBuilder.build();
 
