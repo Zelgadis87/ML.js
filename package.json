@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "npm run lint:eslint",
     "test": "npm run lint:eslint:strict && npm run coverage",
-    "versionate": "npx npm-versionator",
+    "versionate": "npx @zelgadis87/npm-versionator",
     "lint:fix": "npm run lint:eslint -- --fix",
     "lint:eslint": "npx eslint -c .eslintrc ./src/**/*.js ./test/**/*.js",
     "lint:eslint:strict": "npm run lint:eslint -- --rule=mocha/no-exclusive-tests:error --rule=mocha/no-pending-tests:error --rule=mocha/no-skipped-tests:error",
