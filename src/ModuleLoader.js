@@ -110,7 +110,7 @@ class ModuleLoader {
 		for ( let entry of entries ) {
 			const filepath = path.join( directory, entry );
 			const stats = fs.statSync( filepath );
-			if ( stats.isFile() ) {
+			if ( stats.isFile() && entry.endsWith( '.js' ) ) {
 				this.registerFile( filepath );
 			} else if ( stats.isDirectory() && recursive ) {
 				this.registerDirectory( filepath, recursive );

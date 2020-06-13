@@ -1,6 +1,6 @@
 {
   "name": "@zelgadis87/ml.js",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A module loader with dependency injection",
   "main": "src/index.js",
   "scripts": {
