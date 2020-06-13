@@ -836,7 +836,7 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.register( { name: 'a', dependencies: [] } );
 		} );
 
-		it( 'should register all modules in a folder', function() {
+		it( 'should register all javascript modules in a folder', function() {
 			moduleLoader.registerDirectory( testDirectory );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
@@ -844,6 +844,16 @@ describe( 'ModuleLoader', function() {
 					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
 					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
 					expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+				] )
+			);
+		} ).slow( 200 );
+
+		it( 'should ignore other files in a folder', function() {
+			moduleLoader.registerDirectory( testDirectory );
+			return moduleLoader.start().then( () =>
+				Promise.all( [
+					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'typescript' ) ).to.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
