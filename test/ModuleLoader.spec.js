@@ -840,10 +840,10 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.registerDirectory( testDirectory );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+					expect( moduleLoader.resolve( 'a' ), 'a' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ), 'database' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ), 'webServer' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ), 'logger' ).to.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
@@ -852,20 +852,19 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.registerDirectory( testDirectory );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'typescript' ) ).to.be.eventually.undefined
+					expect( moduleLoader.resolve( 'file' ), 'file' ).to.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
 
-		it( 'should register all modules in a folder and its subfolders, if asked', function() {
+		it( 'should register all javascript modules in a folder and its subfolders, if asked', function() {
 			moduleLoader.registerDirectory( testDirectory, true );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
+					expect( moduleLoader.resolve( 'a' ), 'a' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ), 'database' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ), 'webserver' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ), 'logger' ).to.not.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
