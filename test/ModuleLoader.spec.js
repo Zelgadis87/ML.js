@@ -826,6 +826,40 @@ describe( 'ModuleLoader', function() {
 
 	} );
 
+	// This is not testable, because 'export default function' is not a valid syntax when invoked from this project.
+	// It will only work if the client has a different library target than us, allowing its Node to correctly require an ES6 module.
+	describe.skip( '#registerFileES6', function() { // eslint-disable-line mocha/no-skipped-tests
+
+		const path = require( 'path' );
+		const regFile = filename => moduleLoader.registerFile( path.join( __dirname, 'files', 'es6', filename ) );
+
+		it( 'should register ES6 modules that export only a default value correctly', async function() {
+
+			regFile( 'def' );
+			await moduleLoader.start();
+			expect( moduleLoader.resolve( 'def' ), 'def' ).to.eventually.have.property( 'isDefault', true );
+
+		} );
+
+		it( 'should register ES6 modules that have a default export value correctly', async function() {
+
+			regFile( 'mixed' );
+			await moduleLoader.start();
+			expect( moduleLoader.resolve( 'mixed' ), 'mixed' ).to.eventually.have.property( 'isDefault', true );
+
+		} );
+
+		it( 'should register ES6 modules that only have named exports as a value object', async function() {
+
+			regFile( 'named' );
+			await moduleLoader.start();
+			expect( moduleLoader.resolve( 'named' ), 'named' ).to.eventually.have.property( 'foo' );
+			expect( moduleLoader.resolve( 'named' ), 'named' ).to.eventually.have.property( 'bar' );
+
+		} );
+
+	} );
+
 	describe( '#registerDirectory', function() {
 
 		let testDirectory;
@@ -840,10 +874,10 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.registerDirectory( testDirectory );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'logger' ) ).to.be.eventually.undefined
+					expect( moduleLoader.resolve( 'a' ), 'a' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ), 'database' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ), 'webServer' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ), 'logger' ).to.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
@@ -852,20 +886,19 @@ describe( 'ModuleLoader', function() {
 			moduleLoader.registerDirectory( testDirectory );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'typescript' ) ).to.be.eventually.undefined
+					expect( moduleLoader.resolve( 'file' ), 'file' ).to.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );
 
-		it( 'should register all modules in a folder and its subfolders, if asked', function() {
+		it( 'should register all javascript modules in a folder and its subfolders, if asked', function() {
 			moduleLoader.registerDirectory( testDirectory, true );
 			return moduleLoader.start().then( () =>
 				Promise.all( [
-					expect( moduleLoader.resolve( 'a' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'database' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'webServer' ) ).to.not.be.eventually.undefined,
-					expect( moduleLoader.resolve( 'logger' ) ).to.not.be.eventually.undefined
+					expect( moduleLoader.resolve( 'a' ), 'a' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'database' ), 'database' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'webServer' ), 'webserver' ).to.not.be.eventually.undefined,
+					expect( moduleLoader.resolve( 'logger' ), 'logger' ).to.not.be.eventually.undefined
 				] )
 			);
 		} ).slow( 200 );

@@ -1,4 +1,8 @@
 
+## v1.3.0 (2020/06/14 13:52)
+- Added support for Typescript files
+- Added support for ES6 modules
+
 ## v1.2.0 (2019/09/21 08:40)
 - Improved and clarified stopping algorithm handling of in-progress modules
 - Code refactoring

@@ -80,6 +80,17 @@ class ModuleLoader {
 	registerFile( filepath ) {
 		let lib = require( filepath );
 		let name = this._generateNameFromFilepath( filepath );
+
+		/* istanbul ignore if */
+		if ( lodash.isObjectLike( lib ) && lib.__esModule ) {
+			if ( "default" in lib ) { 
+				// ES6 Modules with a default export are registered with their default export only.
+				lib = lib.default;
+			} else {
+				// ES6 Modules without a default export are registered as a value object.
+			}
+		}
+
 		if ( lodash.isFunction( lib ) ) {
 			let result = functionParser.parse( lib );
 
@@ -110,8 +121,18 @@ class ModuleLoader {
 		for ( let entry of entries ) {
 			const filepath = path.join( directory, entry );
 			const stats = fs.statSync( filepath );
-			if ( stats.isFile() && entry.endsWith( '.js' ) ) {
-				this.registerFile( filepath );
+			if ( stats.isFile() ) {
+				/* istanbul ignore if */
+				if ( entry.endsWith( '.ts' ) ) {
+					if ( !require.resolve( 'typescript' ) )
+						throw new Error( `File ${ filepath } is a typescript file, but no typescript compiler was found !` );
+					this.registerFile( filepath );
+				} else if ( entry.endsWith( '.js' ) ) {
+					this.registerFile( filepath );
+				} else {
+					// File is not valid ECMAScript, ignored.
+					// console.warn( `File ${ filepath } has been ignored.` );
+				}
 			} else if ( stats.isDirectory() && recursive ) {
 				this.registerDirectory( filepath, recursive );
 			}
