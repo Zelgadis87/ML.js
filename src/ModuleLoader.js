@@ -110,8 +110,17 @@ class ModuleLoader {
 		for ( let entry of entries ) {
 			const filepath = path.join( directory, entry );
 			const stats = fs.statSync( filepath );
-			if ( stats.isFile() && entry.endsWith( '.js' ) ) {
-				this.registerFile( filepath );
+			if ( stats.isFile() ) {
+				if ( entry.endsWith( '.ts' ) ) {
+					if ( !require.resolve( 'typescript' ) )
+						throw new Error( `File ${ filepath } is a typescript file, but no typescript compiler was found !` );
+					this.registerFile( filepath );
+				} else if ( entry.endsWith( '.js' ) ) {
+					this.registerFile( filepath );
+				} else {
+					// File is not valid ECMAScript, ignored.
+					console.warn( `File ${ filepath } has been ignored.` );
+				}
 			} else if ( stats.isDirectory() && recursive ) {
 				this.registerDirectory( filepath, recursive );
 			}
