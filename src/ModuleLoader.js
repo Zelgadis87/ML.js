@@ -129,7 +129,7 @@ class ModuleLoader {
 					this.registerFile( filepath );
 				} else {
 					// File is not valid ECMAScript, ignored.
-					console.warn( `File ${ filepath } has been ignored.` );
+					// console.warn( `File ${ filepath } has been ignored.` );
 				}
 			} else if ( stats.isDirectory() && recursive ) {
 				this.registerDirectory( filepath, recursive );
