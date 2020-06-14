@@ -80,6 +80,16 @@ class ModuleLoader {
 	registerFile( filepath ) {
 		let lib = require( filepath );
 		let name = this._generateNameFromFilepath( filepath );
+
+		if ( lodash.isObjectLike( lib ) && lib.__esModule ) {
+			if ( "default" in lib ) {
+				// ES6 Modules with a default export are registered with their default export only.
+				lib = lib.default;
+			} else {
+				// ES6 Modules without a default export are registered as a value object.
+			}
+		}
+
 		if ( lodash.isFunction( lib ) ) {
 			let result = functionParser.parse( lib );
 
