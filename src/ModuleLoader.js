@@ -81,8 +81,9 @@ class ModuleLoader {
 		let lib = require( filepath );
 		let name = this._generateNameFromFilepath( filepath );
 
+		/* istanbul ignore if */
 		if ( lodash.isObjectLike( lib ) && lib.__esModule ) {
-			if ( "default" in lib ) {
+			if ( "default" in lib ) { 
 				// ES6 Modules with a default export are registered with their default export only.
 				lib = lib.default;
 			} else {
@@ -121,6 +122,7 @@ class ModuleLoader {
 			const filepath = path.join( directory, entry );
 			const stats = fs.statSync( filepath );
 			if ( stats.isFile() ) {
+				/* istanbul ignore if */
 				if ( entry.endsWith( '.ts' ) ) {
 					if ( !require.resolve( 'typescript' ) )
 						throw new Error( `File ${ filepath } is a typescript file, but no typescript compiler was found !` );
